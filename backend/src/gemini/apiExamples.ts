@@ -45,7 +45,7 @@ export class PlaidIntegration {
       })
     });
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     return data.transactions.map((tx: any) => ({
       date: tx.date,
@@ -83,7 +83,7 @@ export class YNABIntegration {
       }
     );
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     return data.data.transactions
       .filter((tx: any) => tx.date <= endDate && tx.amount < 0) // Only expenses
@@ -125,7 +125,7 @@ export class MintIntegration {
       })
     });
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     return data.transactions.map((tx: any) => ({
       date: tx.date,
@@ -164,7 +164,7 @@ export class BankAPIIntegration {
       // Note: You might need to use URLSearchParams for GET requests
     });
 
-    const data = await response.json();
+    const data = await response.json() as any;
     
     return data.transactions
       .filter((tx: any) => tx.date >= startDate && tx.date <= endDate)

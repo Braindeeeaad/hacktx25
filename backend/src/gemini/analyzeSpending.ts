@@ -7,7 +7,7 @@ import { handleError, logError, GeminiAPIError } from './utils/errorHandler';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: './backend/.env' });
 
 // Console declaration for Node.js environment
 declare const console: {
