@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, Stack } from "expo-router";
 import '../global.css';
 import { useColorScheme } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -13,6 +13,7 @@ export default function RootLayout() {
         tabBarStyle: {
           backgroundColor: colorScheme === 'dark' ? '#000' : '#fff',
         },
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"
@@ -48,6 +49,12 @@ export default function RootLayout() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="info" color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="financial"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

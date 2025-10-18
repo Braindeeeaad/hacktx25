@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import "tailwindcss";
+
+@theme {
+  --color-capitalred: #B22A2C; 
+  
+  --color-capitalblue: #002B4E;
+
+  --color-brand-500: #e76f51; 
+}
