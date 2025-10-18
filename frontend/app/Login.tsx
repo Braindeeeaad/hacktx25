@@ -35,7 +35,7 @@ export default function Login() {
         Alert.alert('Account created!');
       }
 
-      router.replace('/EmotionLogging');
+      /* router.replace('/EmotionLogging'); */
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {

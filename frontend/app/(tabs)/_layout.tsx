@@ -18,6 +18,7 @@ export default function RootLayout() {
         name="index"
         options={{
           title: 'Home',
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="home" color={color} />
           ),
@@ -27,6 +28,7 @@ export default function RootLayout() {
         name="EmotionLogging"
         options={{
           title: 'Wellbeing',
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="person" color={color} />
           ),
@@ -36,6 +38,7 @@ export default function RootLayout() {
         name="FinancialPage"
         options={{
           title: 'My Finances',
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="settings" color={color} />
           ),
