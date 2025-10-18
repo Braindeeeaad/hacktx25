@@ -106,10 +106,19 @@ export default function FinancialPage() {
   return (
     <ScrollView className="flex-1 bg-gray-50">
       {/* Header with Capital Blue */}
+
       <View className="bg-capitalblue px-6 py-8 pt-20">
-        <Text className="text-white text-2xl font-bold mb-2">
-          Purchase History
-        </Text>
+        <View className="flex-row items-center mb-4">
+          <TouchableOpacity 
+            onPress={() => router.back()}
+            className="mr-4"
+          >
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text className="text-white text-2xl font-bold flex-1">
+            Purchase History
+          </Text>
+        </View>
         <Text className="text-blue-200 text-base">
           Recent transactions and purchases
         </Text>
@@ -128,8 +137,9 @@ export default function FinancialPage() {
           endSpacing={20}
           color={'#B22A2C'}
           thickness={4}
-          /* curved = {true}
-          curveType={CurveType.QUADRATIC} */
+          curved = {true}
+          curveType={CurveType.QUADRATIC}
+          /* curvature={0.05} */
           /* startFillColor="green" */
         />
       </View>
