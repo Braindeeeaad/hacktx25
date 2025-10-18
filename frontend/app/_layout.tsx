@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import '../global.css';
 import { useColorScheme } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
