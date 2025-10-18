@@ -8,7 +8,7 @@ export const config = {
   GEMINI_API_KEY: 'your-gemini-api-key-here',
   
   // Optional: Customize the Gemini model
-  GEMINI_MODEL: 'gemini-2.0-flash-exp',
+  GEMINI_MODEL: 'gemini-2.5-pro',
   
   // Optional: Set analysis limits
   MAX_TRANSACTIONS: 10000,

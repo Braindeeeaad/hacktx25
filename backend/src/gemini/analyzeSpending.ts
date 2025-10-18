@@ -39,7 +39,7 @@ export async function analyzeSpending(data: any[]): Promise<AnalysisResult> {
 
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
 
     // Process the spending data
     console.log(`Processing ${validatedData.length} transactions...`);
