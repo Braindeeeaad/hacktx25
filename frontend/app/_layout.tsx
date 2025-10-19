@@ -4,8 +4,29 @@ import { useColorScheme, View , ActivityIndicator} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { AuthProvider } from '../firebase_context';
+import { EmailProvider, useEmail } from './emailContext';
 import { auth } from '../firebaseConfig';
+// Component to handle email context updates based on Firebase auth state
+function AuthEmailHandler({ children }: { children: React.ReactNode }) {
+  const { setEmail, clearEmail } = useEmail();
+  const [user, setUser] = useState<User | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser?.email) {
+        setEmail(firebaseUser.email);
+      } else {
+        clearEmail();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [setEmail, clearEmail]);
+
+  return <>{children}</>;
+}
+
 export default function RootLayout() {
  const colorScheme = useColorScheme();
 
@@ -52,13 +73,14 @@ export default function RootLayout() {
   // 3. Render the Navigation Stack
   // If no redirection occurred, we render the stack.
   return (
-    <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" /> // Protected routes
-        <Stack.Screen name="Login" /> // Public route
-      </Stack>
-    </AuthProvider>
-    
+    <EmailProvider>
+      <AuthEmailHandler>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" /> // Protected routes
+          <Stack.Screen name="Login" /> // Public route
+        </Stack>
+      </AuthEmailHandler>
+    </EmailProvider>
   );
 }
 

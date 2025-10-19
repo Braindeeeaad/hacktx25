@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { D1Service } from '../services/d1Service';
+import { MockDatabaseService } from '../services/mockDatabaseService';
 import { WellbeingDataRequest, WellbeingDataBatchRequest, QueryOptions } from '../types';
 import { createError } from '../middleware/errorHandler';
 
 export class EmotionalDataController {
-  private d1Service: D1Service;
+  private databaseService: MockDatabaseService;
 
   constructor() {
-    this.d1Service = D1Service.getInstance();
+    this.databaseService = MockDatabaseService.getInstance();
   }
 
   // Create new wellbeing data entry

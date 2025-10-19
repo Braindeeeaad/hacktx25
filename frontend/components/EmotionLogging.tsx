@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { db } from '../firebaseConfig';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useEmail } from '../app/emailContext';
 
 type UserState = {
   "Well-being": number;
@@ -13,9 +12,9 @@ type UserState = {
 };
 type Operation = () => void;
 type Props = {closeTab : Operation;
-              userId: string
 };
 export default function EmotionLogging(props: Props) {
+  const { email } = useEmail();
   const categories: { key: keyof UserState; title: string; options: string[] }[] = [
     { key: "Well-being", title: "Your overall well-being", options: ["Really sad", "Sad", "OK", "Good", "Amazing!"] },
     { key: "Sleep", title: "How much sleep you got", options: ["0-2 hours", "3-4 hours", "5-6 hours", "7-8 hours", "8+ hours"] },
@@ -30,27 +29,58 @@ export default function EmotionLogging(props: Props) {
     setUserState(prev => ({ ...prev, [key]: value }));
   }
   const handleSubmit = async () => {
-      if (!props.userId) {
-        Alert.alert('Error', 'User ID is required');
+      if (!email) {
+        Alert.alert('Error', 'User email is required. Please log in first.');
         return;
       }
-      console.log("hi");
+      
       try {
-        const moodData = Object.values(userState);
+        // Map userState to backend API format
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
         
-        const id = props.userId;
-        // Save to Firebase Firestore
-        await addDoc(collection(db, 'mood_entries'), {
-          id,
-          date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
-          ...moodData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
+        const wellbeingData = {
+          userId: email, // Using email as userId
+          date: dateString,
+          overall_wellbeing: userState["Well-being"],
+          sleep_quality: userState["Sleep"],
+          physical_activity: userState["Exercise"],
+          time_with_family_friends: 5, // Default value since not in current form
+          diet_quality: userState["Diet"],
+          stress_levels: userState["Stress"]
+        };
+
+        // Call your backend API
+        console.log('Sending data to backend:', wellbeingData);
+        
+        const response = await fetch('http://localhost:8000/api/emotional-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(wellbeingData)
         });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Backend error response:', errorText);
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Wellbeing data saved:', result);
+        
+        // Reset form and show success
         setUserState(initialUserState);
-        } catch (error) {
-        Alert.alert('Error', 'Failed to save mood data');
+        Alert.alert('Success', 'Your wellbeing data has been saved!');
+        props.closeTab();
+        
+      } catch (error) {
         console.error('Mood submission error:', error);
+        Alert.alert('Error', 'Failed to save mood data. Please try again.');
       } 
     };
   return (

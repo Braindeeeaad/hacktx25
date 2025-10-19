@@ -26,7 +26,7 @@ export default function WellbeingPage() {
   const currentScore = getCurrentScore();
   const colors = ['#c20000ff', '#eb9e2bff', '#f8d40aff', '#2c9104ff'];
   const currentColor = colors[Math.floor(currentScore / 25 - 1)];
-  const quizTaken = false; //REPLACE WITH API CALL
+  const [quizTaken, setQuizTaken] = useState(false); //REPLACE WITH API CALL
   const [modalVisible, setModalVisible] = useState(false);
   const recommendations = getRecommendations();
 
@@ -77,7 +77,8 @@ export default function WellbeingPage() {
             >
               <View className="flex-1 bg-black/50 justify-center items-center">
                 <View className="bg-white p-6 rounded-xl w-80">
-                  <EmotionLogging closeTab={() => setModalVisible(false)} userId={USER_ID}/>
+                  <EmotionLogging closeTab={() => {setModalVisible(false) 
+                                                  setQuizTaken(true)}} userId={USER_ID}/>
                 </View>
               </View>
             </Modal>

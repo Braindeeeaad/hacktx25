@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from '../firebaseConfig';
 import { router } from 'expo-router';
+import { useEmail } from './emailContext';
 
 // Define navigation type (optional but nice for TypeScript)
 type RootStackParamList = {
@@ -18,6 +19,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const { setEmail: setContextEmail } = useEmail();
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -30,12 +32,13 @@ export default function Login() {
       if (isLogin) {
         console.log('Starting login');
         await signInWithEmailAndPassword(auth, email, password);
+        setContextEmail(email); // Set email in context after successful login
         Alert.alert('Login successful');
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
+        setContextEmail(email); // Set email in context after successful signup
         Alert.alert('Account created!');
       }
-
       /* router.replace('/EmotionLogging'); */
     } catch (error: any) {
       Alert.alert('Error', error.message);
