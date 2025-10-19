@@ -2,10 +2,50 @@ import { Text, View, ScrollView, TouchableOpacity } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { NessieAPIIntegration } from "@/api_hooks/nessie_api";
+import { useState, useEffect } from "react";
+import { useEmail } from "../../contexts/emailContext";
+import { fetchUserWellbeingData, calculateWellnessScore } from "@/api_hooks/wellbeing_db_api";
 
 export default function Index() {
   const navigation = useNavigation<StackNavigationProp<any>>();
+  const { email } = useEmail();
+  const [totalPurchases, setTotalPurchases] = useState<number>(0);
+  const [wellbeingScore, setWellbeingScore] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  
+  const nessie = new NessieAPIIntegration(
+    '2535e8ec7de75e2bb33a7e0bab0cc897',        // Your actual API key
+    '68f4a25a9683f20dd51a206a',           // Your actual customer ID
+    'http://api.nessieisreal.com' // Base URL
+  );
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch total purchases
+        const total = await nessie.getsum();
+        setTotalPurchases(total);
+        
+        // Fetch wellbeing score if user is logged in
+        if (email) {
+          const wellbeingData = await fetchUserWellbeingData(email);
+          const score = calculateWellnessScore(wellbeingData);
+          setWellbeingScore(score);
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        setTotalPurchases(0);
+        setWellbeingScore(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [email]);
   return (
     <ScrollView className="flex-1 bg-gray-50">
       {/* Header Section */}
@@ -25,11 +65,15 @@ export default function Index() {
             </Text>
             <View className="flex-row justify-evenly flex items-center">
               <View className="flex-1 bg-white rounded-lg p-4 shadow-sm mr-1">
-                <Text className="text-2xl font-bold text-capitalblue text-center">$2,450</Text>
-                <Text className="text-gray-600 text-sm text-center">Monthly Spending</Text>
+                <Text className="text-2xl font-bold text-capitalblue text-center">
+                  {loading ? 'Loading...' : `$${totalPurchases.toLocaleString()}`}
+                </Text>
+                <Text className="text-gray-600 text-sm text-center">Total Spending</Text>
               </View>
               <View className="flex-1 bg-white rounded-lg p-4 shadow-sm ml-1">
-                <Text className="text-2xl font-bold text-green-600 text-center">85%</Text>
+                <Text className="text-2xl font-bold text-green-600 text-center">
+                  {loading ? 'Loading...' : `${wellbeingScore}%`}
+                </Text>
                 <Text className="text-gray-600 text-sm text-center">Wellbeing Score</Text>
               </View>
             </View>

@@ -8,6 +8,7 @@ import AllPurchasesScreen from './AllPurchases';
 import WellbeingPage from './WellbeingPage';
 import FinancialPageScreen from './FinancialPage';
 import RecommendationDetailScreen from './RecommendationDetail';
+import WellbeingRecommendationDetail from './WellbeingRecommendationDetail';
 
 const Stack = createStackNavigator();
 
@@ -39,6 +40,7 @@ export default function SwipeNavigatorLayout() {
       <Stack.Screen name="FinancialPage" component={FinancialPageScreen} />
       <Stack.Screen name="AllPurchases" component={AllPurchasesScreen} />
       <Stack.Screen name="RecommendationDetail" component={RecommendationDetailScreen} />
+      <Stack.Screen name="WellbeingRecommendationDetail" component={WellbeingRecommendationDetail} />
     </Stack.Navigator>
   );
 }

@@ -99,3 +99,28 @@ export interface ProcessedData {
   weeklyData: Record<string, Record<string, number>>;
   anomalies: Anomaly[];
 }
+
+export interface WellbeingData {
+  id: string;
+  userId: string;
+  date: string;
+  overall_wellbeing: number;
+  sleep_quality: number;
+  physical_activity: number;
+  time_with_family_friends: number;
+  diet_quality: number;
+  stress_levels: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WellbeingResult {
+    wellnessTips: wellnessTip[]
+}
+
+export interface wellnessTip{
+    trigger : string;
+    shortTip: string;
+    detailedTip: string;
+    recommendations: string[];
+}

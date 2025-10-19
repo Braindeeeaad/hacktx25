@@ -3,89 +3,16 @@ import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Ale
 import EmotionLogging from '../../components/EmotionLogging';
 import { LineChart } from 'react-native-gifted-charts';
 import Slider from '@react-native-community/slider';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useEmail } from '../../contexts/emailContext';
+import { WellbeingData, WellbeingResult, wellnessTip } from '@/api_hooks/api_types';
+import { GeminiIntegration } from '@/api_hooks/gemini_api';
+import { fetchUserWellbeingData, calculateWellnessScore } from '@/api_hooks/wellbeing_db_api';
 
 // API service functions
-const API_BASE_URL = 'https://unribboned-lavada-phytogenic.ngrok-free.dev/api/emotional-data';
-
-interface WellbeingData {
-  id: string;
-  userId: string;
-  date: string;
-  overall_wellbeing: number;
-  sleep_quality: number;
-  physical_activity: number;
-  time_with_family_friends: number;
-  diet_quality: number;
-  stress_levels: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const fetchUserWellbeingData = async (userId: string): Promise<WellbeingData[]> => {
-  try {
-    console.log('🔍 Attempting to fetch data for user:', userId);
-    console.log('🌐 API URL:', `${API_BASE_URL}/user/${userId}?limit=7`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
-    const response = await fetch(`${API_BASE_URL}/user/${userId}?limit=7`, {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    });
-    
-    clearTimeout(timeoutId);
-    
-    console.log('📡 Response status:', response.status);
-    console.log('📡 Response headers:', response.headers);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ API Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-    }
-    
-    const result = await response.json();
-    console.log('✅ API Success:', result);
-    return result.data || [];
-  } catch (error) {
-    console.error('❌ Error fetching wellbeing data:', error);
-    console.error('❌ Error type:', typeof error);
-    console.error('❌ Error message:', error instanceof Error ? error.message : 'Unknown error');
-    return [];
-  }
-};
-
-const calculateWellnessScore = (data: WellbeingData[]): number => {
-  if (data.length === 0) return 0;
-  
-  const latest = data[0]; // Most recent entry
-  const weights = {
-    overall_wellbeing: 0.3,
-    sleep_quality: 0.2,
-    physical_activity: 0.15,
-    time_with_family_friends: 0.1,
-    diet_quality: 0.15,
-    stress_levels: 0.1 // Lower stress is better, so we'll invert this
-  };
-  
-  const score = (
-    latest.overall_wellbeing * weights.overall_wellbeing +
-    latest.sleep_quality * weights.sleep_quality +
-    latest.physical_activity * weights.physical_activity +
-    latest.time_with_family_friends * weights.time_with_family_friends +
-    latest.diet_quality * weights.diet_quality +
-    (11 - latest.stress_levels) * weights.stress_levels // Invert stress (lower is better)
-  ) * 10; // Scale to 0-100
-  
-  return Math.round(score);
-};
+const API_BASE_URL = 'https://webless-lustreless-adeline.ngrok-free.dev/api/emotional-data';
 
 const generateRecommendations = (data: WellbeingData[]): string[] => {
   if (data.length === 0) {
@@ -178,10 +105,14 @@ const postWellbeingData = async (data: WellbeingDataRequest): Promise<boolean> =
 
 export default function WellbeingPage() {
   const { email } = useEmail();
-  const router = useRouter();
+  const navigation = useNavigation<StackNavigationProp<any>>();
+  
+  // Initialize Gemini integration
+  const geminiIntegration = new GeminiIntegration();
   
   // State management
   const [wellbeingData, setWellbeingData] = useState<WellbeingData[]>([]);
+  const [wellBeingRecommendations, setWellBeingRecommendations] = useState<wellnessTip[]>([])
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -203,6 +134,24 @@ export default function WellbeingPage() {
         const data = await fetchUserWellbeingData(email);
         setWellbeingData(data);
         setQuizTaken(data.length > 0);
+        
+        // Analyze wellness data and update recommendations
+        if (data.length > 0) {
+          try {
+            console.log('Starting wellness analysis with data:', data);
+            const wellnessAnalysis = await geminiIntegration.analyzeWellness(data);
+            console.log('Received wellness analysis:', wellnessAnalysis);
+            if (wellnessAnalysis && wellnessAnalysis.length > 0) {
+              setWellBeingRecommendations(wellnessAnalysis);
+              console.log('Updated wellBeingRecommendations state');
+            } else {
+              console.log('No wellness tips received from analysis');
+            }
+          } catch (analysisError) {
+            console.error('Error analyzing wellness data:', analysisError);
+            // Don't set error state for analysis failures, just log them
+          }
+        }
       } catch (err) {
         console.error('Error loading wellbeing data:', err);
         setError('Failed to load wellbeing data');
@@ -218,6 +167,11 @@ export default function WellbeingPage() {
   const currentScore = calculateWellnessScore(wellbeingData);
   const recommendations = generateRecommendations(wellbeingData);
   const chartData = formatChartData(wellbeingData);
+  
+  // Debug logging
+  console.log('Current wellBeingRecommendations state:', wellBeingRecommendations);
+  console.log('Current wellbeingData length:', wellbeingData.length);
+  console.log('Current recommendations (fallback):', recommendations);
   
   const colors = ['#c20000ff', '#eb9e2bff', '#f8d40aff', '#2c9104ff'];
   const currentColor = colors[Math.floor(Math.max(0, currentScore / 25 - 1))];
@@ -242,7 +196,25 @@ export default function WellbeingPage() {
       Alert.alert('Success', 'Your wellbeing data has been saved successfully!');
       
       // Refresh data after quiz completion
-      fetchUserWellbeingData(email).then(setWellbeingData);
+      const updatedData = await fetchUserWellbeingData(email);
+      setWellbeingData(updatedData);
+      
+      // Analyze the updated wellness data
+      if (updatedData.length > 0) {
+        try {
+          console.log('Starting wellness analysis after quiz with data:', updatedData);
+          const wellnessAnalysis = await geminiIntegration.analyzeWellness(updatedData);
+          console.log('Received wellness analysis after quiz:', wellnessAnalysis);
+          if (wellnessAnalysis && wellnessAnalysis.length > 0) {
+            setWellBeingRecommendations(wellnessAnalysis);
+            console.log('Updated wellBeingRecommendations state after quiz');
+          } else {
+            console.log('No wellness tips received from analysis after quiz');
+          }
+        } catch (analysisError) {
+          console.error('Error analyzing wellness data after quiz:', analysisError);
+        }
+      }
     
     } catch (error) {
       console.error('Error submitting wellbeing data:', error);
@@ -287,7 +259,7 @@ export default function WellbeingPage() {
       <View className="bg-capitalblue px-6 py-8 pt-20">
         <View className="flex-row items-center mb-4">
           <TouchableOpacity 
-            onPress={() => router.back()}
+            onPress={() => navigation.goBack()}
             className="mr-4"
           >
             <Ionicons name="arrow-back" size={24} color="white" />
@@ -369,14 +341,33 @@ export default function WellbeingPage() {
         <Text className="text-capitalblue text-lg font-semibold mb-4 mx-4">
           Smart Recommendations
         </Text>
-        {recommendations.length > 0 ? (
-          recommendations.map((recommendation, index) => (
-            <Recommendation 
-              key={index}
-              short={recommendation}
-              router={router}
-            />
-          ))
+        {wellBeingRecommendations.length > 0 ? (
+          wellBeingRecommendations.map((recommendation, index) => {
+            console.log('Rendering AI recommendation:', recommendation);
+            return (
+              <Recommendation 
+                key={index}
+                shortTip={recommendation.shortTip}
+                detailedTip={recommendation.detailedTip}
+                recommendations={recommendation.recommendations}
+                navigation={navigation}
+              />
+            );
+          })
+        ) : wellbeingData.length > 0 ? (
+          // Show fallback recommendations if we have data but no AI recommendations
+          recommendations.map((recommendation, index) => {
+            console.log('Rendering fallback recommendation:', recommendation);
+            return (
+              <Recommendation 
+                key={index}
+                shortTip={recommendation}
+                detailedTip={recommendation}
+                recommendations={[]}
+                navigation={navigation}
+              />
+            );
+          })
         ) : (
           <View className="mx-4 bg-white rounded-lg p-4 mb-3">
             <Text className="text-gray-500 text-center">
@@ -389,19 +380,36 @@ export default function WellbeingPage() {
   );
 // Recommendation component for WellbeingPage (copied and adapted from FinancialPage)
 interface recommendationViewProps {
-  short: string;
-  router: any;
+  shortTip: string;
+  detailedTip: string;
+  recommendations?: string[];
+  navigation: any;
 }
 
-function Recommendation({ short, router }: recommendationViewProps) {
+function Recommendation({ shortTip, detailedTip, recommendations, navigation }: recommendationViewProps) {
+  console.log('Recommendation component received props:', { shortTip, detailedTip, recommendations });
+
+  const handlePress = () => {
+    console.log('Navigating to WellbeingRecommendationDetail with params:', {
+      shortTip: shortTip,
+      detailedTip: detailedTip,
+      recommendations: recommendations,
+    });
+    navigation.push('WellbeingRecommendationDetail', {
+      shortTip: shortTip,
+      detailedTip: detailedTip,
+      recommendations: recommendations || [],
+    });
+  };
+
   return (
     <TouchableOpacity 
       className="bg-white rounded-lg shadow-sm p-4 mb-3 mx-4 border-l-4 border-capitalred"
-      onPress={() => router.push('/wellbeing')}
+      onPress={handlePress}
     >
       <View className="flex-row justify-between items-center">
         <View className="flex-1">
-          <Text className="text-lg font-semibold text-gray-800">{short}</Text>
+          <Text className="text-lg font-semibold text-gray-800">{shortTip}</Text>
         </View>
         <View className="items-end">
           <Ionicons name="bulb-outline" size={24} color="#B22A2C" />

@@ -1,4 +1,4 @@
-import { Transaction } from "./api_types";
+import { Transaction, purchaseType } from "./api_types";
 
 interface Merchant {
   _id: string;
@@ -242,6 +242,49 @@ export class NessieAPIIntegration {
       endDate.toISOString().split('T')[0]
     );
   } */
+
+  /**
+   * Fetch all purchases from all accounts and calculate the total sum
+   */
+  async getsum(startDate?: string, endDate?: string): Promise<number> {
+    try {
+      // First, get all accounts
+      const accounts = await this.getAccounts();
+      
+      if (!accounts || accounts.length === 0) {
+        console.warn('No accounts found for customer');
+        return 0;
+      }
+
+      let totalSum = 0;
+      
+      // Fetch purchases from all accounts and sum them up
+      for (const account of accounts) {
+        try {
+          const accountPurchases = await this.getAccountPurchases(
+            account._id, 
+            startDate, 
+            endDate
+          );
+          
+          // Sum up the amounts from this account's purchases
+          const accountSum = accountPurchases.reduce((sum: number, purchase: purchaseType) => {
+            return sum + (purchase.amount || 0);
+          }, 0);
+          
+          totalSum += accountSum;
+        } catch (error) {
+          console.warn(`Failed to fetch purchases for account ${account._id}:`, error);
+          // Continue with other accounts
+        }
+      }
+
+      return totalSum;
+    } catch (error) {
+      console.error('Failed to calculate total sum of purchases:', error);
+      throw error;
+    }
+  }
 }
 
 

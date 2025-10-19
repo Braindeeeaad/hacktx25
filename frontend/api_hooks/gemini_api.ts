@@ -1,6 +1,7 @@
 import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
-import { Transaction, ProcessedData, Anomaly, FinanceScore, AnalysisResult } from "./api_types";
+import { Transaction, ProcessedData, Anomaly, FinanceScore, AnalysisResult, WellbeingData, WellbeingResult } from "./api_types";
 import { SPENDING_ANALYSIS_PROMPT } from './spendingAnalysisPrompt';
+import { WELLBEING_ANALYSIS_PROMPT } from './wellbeingAnalysisPrompt';
 
 export class GeminiIntegration {
     private apiKey: string;
@@ -153,6 +154,90 @@ Respond with valid JSON only, following the exact format specified in the prompt
     }
   }
 }
+
+    async analyzeWellness(data: WellbeingData[]){
+      try {
+        // Validate input data
+        if (!data || data.length === 0) {
+          console.log('No wellbeing data provided for analysis');
+          return [];
+        }
+
+        console.log('Analyzing wellbeing data:', data);
+
+        // Format the data for better AI understanding
+        const formattedData = data.map(entry => ({
+          date: entry.date,
+          overall_wellbeing: entry.overall_wellbeing,
+          sleep_quality: entry.sleep_quality,
+          physical_activity: entry.physical_activity,
+          time_with_family_friends: entry.time_with_family_friends,
+          diet_quality: entry.diet_quality,
+          stress_levels: entry.stress_levels
+        }));
+
+        // Create the prompt for Gemini
+        const prompt = `${WELLBEING_ANALYSIS_PROMPT}
+
+Please analyze the following personal wellness data and provide specific, actionable wellness tips based on the patterns you observe:
+
+WELLNESS DATA:
+${JSON.stringify(formattedData, null, 2)}
+
+Based on this data, identify specific wellness patterns and provide personalized tips. Focus on:
+- Sleep quality trends and recommendations
+- Stress management based on stress level patterns
+- Physical activity suggestions
+- Social connection recommendations
+- Diet quality improvements
+- Overall wellbeing optimization
+
+Respond with valid JSON only, following the exact format specified in the prompt.`;
+
+        console.log('Sending request to Gemini 2.5 Pro...');
+        
+        // Send request to Gemini
+        const result = await this.pro_model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        console.log('Raw Gemini response:', text);
+        console.log('Received response from Gemini');
+        
+        // Parse and validate the response
+        const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        console.log('Cleaned response:', cleanedText);
+
+        const cleaned_result = JSON.parse(cleanedText) as WellbeingResult;
+        
+        console.log('Analysis completed successfully');
+        console.log('Parsed result:', cleaned_result);
+        
+        // Return wellness tips or empty array if none provided
+        return cleaned_result.wellnessTips || [];
+
+      } catch (error) {
+        console.error('Error in analyzeWellness:', error);
+        
+        // Return fallback recommendations if AI fails
+        return [
+          {
+            trigger: "general_wellness",
+            shortTip: "Track your daily wellness metrics",
+            detailedTip: "Continue logging your daily wellness data to get more personalized recommendations. Focus on maintaining consistent sleep, managing stress, and staying active.",
+            recommendations: [
+              "Log your daily wellness metrics consistently",
+              "Focus on maintaining consistent sleep patterns",
+              "Practice stress management techniques",
+              "Stay physically active with regular exercise"
+            ]
+          }
+        ];
+      }
+    }
+
+
 }
 
 export function processSpendingData(transactions: Transaction[]): ProcessedData {
