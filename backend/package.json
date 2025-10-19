@@ -11,15 +11,21 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "axios": "^1.7.0",
     "dotenv": "^16.4.5",
-    "axios": "^1.7.0"
+    "firebase-admin": "^13.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
   },
-  "keywords": ["financial", "analysis", "gemini", "ai"],
+  "keywords": [
+    "financial",
+    "analysis",
+    "gemini",
+    "ai"
+  ],
   "author": "HackTX25 Team",
   "license": "MIT"
 }
