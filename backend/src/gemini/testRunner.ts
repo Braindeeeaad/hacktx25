@@ -85,13 +85,13 @@ export class TestRunner {
       
       console.log('\n📊 Category Analysis:');
       analysis.categories.forEach(category => {
-        console.log(`  ${category.category}: ${category.trend} (${category.change}) - ${category.note}`);
+        console.log(`  ${category.category}: ${category.trend} (${category.change}) - ${category.detailedAnalysis}`);
       });
       
       if (analysis.anomalies.length > 0) {
         console.log('\n⚠️  Anomalies Detected:');
         analysis.anomalies.forEach(anomaly => {
-          console.log(`  ${anomaly.date} - ${anomaly.category}: $${anomaly.amount} (${anomaly.reason})`);
+          console.log(`  ${anomaly.date} - ${anomaly.category}: $${anomaly.amount} (${anomaly.detailedReason})`);
         });
       }
       

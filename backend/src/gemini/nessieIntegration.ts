@@ -7,7 +7,7 @@ import { analyzeSpending, Transaction } from './index';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: './backend/.env' });
 
 // Console and fetch declarations for Node.js environment
 declare const console: {
@@ -90,7 +90,8 @@ export class NessieAPIIntegration {
   async getAllTransactions(startDate?: string, endDate?: string): Promise<Transaction[]> {
     try {
       // First, get all accounts
-      const accounts = await this.getAccounts();
+      const accountsResponse = await this.getAccounts();
+      const accounts = Array.isArray(accountsResponse) ? accountsResponse : [];
       
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found for customer');
@@ -108,7 +109,8 @@ export class NessieAPIIntegration {
           );
           
           // Transform Nessie purchase format to our format
-          const transformedTransactions = this.transformPurchases(accountPurchases);
+          const purchases = Array.isArray(accountPurchases) ? accountPurchases : [];
+          const transformedTransactions = this.transformPurchases(purchases);
           allTransactions.push(...transformedTransactions);
         } catch (error) {
           console.warn(`Failed to fetch transactions for account ${account._id}:`, error);

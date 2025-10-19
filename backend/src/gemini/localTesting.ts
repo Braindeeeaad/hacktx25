@@ -228,7 +228,7 @@ export class LocalTestingSuite {
       console.log('✅ Pattern detection completed');
       console.log('📊 Category Trends:');
       analysis.categories.forEach(cat => {
-        console.log(`  ${cat.category}: ${cat.trend} (${cat.change}) - ${cat.note}`);
+        console.log(`  ${cat.category}: ${cat.trend} (${cat.change}) - ${cat.detailedAnalysis}`);
       });
       
       return analysis;
@@ -253,7 +253,7 @@ export class LocalTestingSuite {
       console.log('✅ Anomaly detection completed');
       console.log(`⚠️  Anomalies Found: ${analysis.anomalies.length}`);
       analysis.anomalies.forEach(anomaly => {
-        console.log(`  ${anomaly.date} - ${anomaly.category}: $${anomaly.amount} (${anomaly.reason})`);
+        console.log(`  ${anomaly.date} - ${anomaly.category}: $${anomaly.amount} (${anomaly.detailedReason})`);
       });
       
       return analysis;

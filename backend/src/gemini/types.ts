@@ -9,14 +9,18 @@ export interface CategoryAnalysis {
   category: string;
   trend: 'up' | 'down' | 'stable';
   change: string;
-  note: string;
+  shortInsight: string;
+  detailedAnalysis: string;
+  wellnessAdvice?: string;
 }
 
 export interface Anomaly {
+  id: string;
   date: string;
   category: string;
   amount: number;
-  reason: string;
+  shortInsight: string;
+  detailedReason: string;
 }
 
 export interface Summary {
@@ -25,11 +29,26 @@ export interface Summary {
   spanDays: number;
 }
 
+export interface Recommendation {
+  shortInsight: string;
+  detailedAdvice: string;
+  linkedInsights: string[]; // AI insights that support this recommendation
+  linkedAnomalies: string[]; // Anomaly IDs that triggered this recommendation
+  category: 'financial' | 'wellness' | 'behavioral';
+}
+
+export interface WellnessTip {
+  trigger: string;
+  shortTip: string;
+  detailedTip: string;
+}
+
 export interface AnalysisResult {
   summary: Summary;
   categories: CategoryAnalysis[];
   anomalies: Anomaly[];
-  recommendations: string[];
+  recommendations: Recommendation[];
+  wellnessTips: WellnessTip[];
 }
 
 export interface ProcessedData {

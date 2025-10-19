@@ -18,11 +18,16 @@ export function processSpendingData(transactions: Transaction[]): ProcessedData 
   const totalSpent = transactions.reduce((sum, t) => sum + t.amount, 0);
   const averageDaily = totalSpent / spanDays;
 
-  // Group by category
+  // Group by category (filter out "Other" category)
   const categoryTotals: Record<string, number> = {};
   const categoryCounts: Record<string, number> = {};
   
   transactions.forEach(transaction => {
+    // Skip "Other" category as requested
+    if (transaction.category.toLowerCase() === 'other') {
+      return;
+    }
+    
     categoryTotals[transaction.category] = (categoryTotals[transaction.category] || 0) + transaction.amount;
     categoryCounts[transaction.category] = (categoryCounts[transaction.category] || 0) + 1;
   });
@@ -32,9 +37,14 @@ export function processSpendingData(transactions: Transaction[]): ProcessedData 
     categoryAverages[category] = categoryTotals[category] / categoryCounts[category];
   });
 
-  // Group by week for trend analysis
+  // Group by week for trend analysis (filter out "Other" category)
   const weeklyData: Record<string, Record<string, number>> = {};
   transactions.forEach(transaction => {
+    // Skip "Other" category as requested
+    if (transaction.category.toLowerCase() === 'other') {
+      return;
+    }
+    
     const date = new Date(transaction.date);
     const weekStart = getWeekStart(date);
     const weekKey = weekStart.toISOString().split('T')[0];
@@ -87,10 +97,12 @@ export function processSpendingData(transactions: Transaction[]): ProcessedData 
     categoryTransactions.forEach(transaction => {
       if (Math.abs(transaction.amount - mean) > 2 * stdDev) {
         anomalies.push({
+          id: `anomaly_${transaction.date}_${transaction.category}_${Date.now()}`,
           date: transaction.date,
           category: transaction.category,
           amount: transaction.amount,
-          reason: `Unusually ${transaction.amount > mean ? 'high' : 'low'} ${transaction.category} spending`
+          shortInsight: `Unusual ${transaction.category} spending: $${transaction.amount}`,
+          detailedReason: `Unusually ${transaction.amount > mean ? 'high' : 'low'} ${transaction.category} spending on ${transaction.date}. This amount is ${Math.abs(transaction.amount - mean).toFixed(2)} ${transaction.amount > mean ? 'above' : 'below'} the average.`
         });
       }
     });

@@ -41,7 +41,7 @@ class TransactionAPI {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as any;
       
       // Transform API data to our format
       return data.transactions.map((tx: any) => ({
