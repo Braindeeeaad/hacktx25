@@ -5,7 +5,7 @@ import '../../global.css';
 // Import screen components
 import IndexScreen from './index';
 import AllPurchasesScreen from './AllPurchases';
-import EmotionLoggingScreen from './EmotionLogging';
+import WellbeingPage from './WellbeingPage';
 import FinancialPageScreen from './FinancialPage';
 import RecommendationDetailScreen from './RecommendationDetail';
 
@@ -35,7 +35,7 @@ export default function SwipeNavigatorLayout() {
       }}
     >
       <Stack.Screen name="index" component={IndexScreen} />
-      <Stack.Screen name="EmotionLogging" component={EmotionLoggingScreen} />
+      <Stack.Screen name="WellbeingPage" component={WellbeingPage} />
       <Stack.Screen name="FinancialPage" component={FinancialPageScreen} />
       <Stack.Screen name="AllPurchases" component={AllPurchasesScreen} />
       <Stack.Screen name="RecommendationDetail" component={RecommendationDetailScreen} />

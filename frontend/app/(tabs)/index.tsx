@@ -68,7 +68,7 @@ export default function Index() {
           {/* Wellbeing Page Button */}
           <TouchableOpacity
             className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-            onPress={() => navigation.push('EmotionLogging')}
+            onPress={() => navigation.push('WellbeingPage')}
             activeOpacity={0.8}
           >
             <View className="flex-row items-center mb-4">
