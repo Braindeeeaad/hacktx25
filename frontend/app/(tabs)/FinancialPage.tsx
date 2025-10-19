@@ -25,7 +25,7 @@ export default function FinancialPage() {
   const gemini = new GeminiIntegration()
   const nessie = new NessieAPIIntegration(
     '2535e8ec7de75e2bb33a7e0bab0cc897',        // Your actual API key
-    '68f4080c9683f20dd519f005',           // Your actual customer ID
+    '68f4a25a9683f20dd51a206a',           // Your actual customer ID
     'http://api.nessieisreal.com' // Base URL
   );
 
@@ -43,7 +43,8 @@ const transformPurchasesToTransactions = (purchases: purchaseType[]): Transactio
   return purchases.map((purchase) => ({
     date: purchase.purchase_date,
     category: purchase.description.slice(0, purchase.description.indexOf(" ")),
-    amount: Math.abs(purchase.amount) // Make positive for spending analysis
+    amount: Math.abs(purchase.amount), // Make positive for spending analysis
+    product: purchase.description || 'Unknown Product'
   }));
 };
 
@@ -109,7 +110,8 @@ useEffect(() => {
     // Fetch merchant names for each unique merchant ID
     for (const merchantId of uniqueMerchantIds) {
       try {
-        const merchantName = await nessie.getMerchantbyMerchantId(merchantId);
+        const merchant = await nessie.getMerchantbyMerchantId(merchantId);
+        const merchantName = merchant?.name || merchantId;
         merchantNamesMap[merchantId] = merchantName;
         console.log(`Merchant ${merchantId}: ${merchantName}`);
       } catch (error) {
@@ -374,7 +376,7 @@ useEffect(() => {
             key={index}
             amount={purchase.amount}
             date={purchase.purchase_date}
-            type={purchase.description.slice(0, purchase.description.indexOf(" "))}
+            description={purchase.description}
             merchant={merchant_names[purchase.merchant_id] || purchase.merchant_id}
           />
         ))}
@@ -401,17 +403,17 @@ useEffect(() => {
 interface purchaseViewProps {
     amount : number;
     date : string;
-    type : string;
+    description : string;
     merchant : string;
 }
 
-function Purchase({ amount, date, type, merchant }: purchaseViewProps) {
+function Purchase({ amount, date, description, merchant }: purchaseViewProps) {
   return (
     <View className="bg-white rounded-lg shadow-sm p-4 mb-3 mx-4">
       <View className="flex-row justify-between items-center">
         <View className="flex-1">
           <Text className="text-lg font-semibold text-gray-800">{merchant}</Text>
-          <Text className="text-gray-600 text-sm">{type}</Text>
+          <Text className="text-gray-600 text-sm">{description}</Text>
         </View>
         <View className="items-end">
           <Text className="text-lg font-semibold text-capitalblue">${amount.toFixed(2)}</Text>

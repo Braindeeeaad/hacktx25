@@ -1,5 +1,23 @@
 import { Transaction } from "./api_types";
 
+interface Merchant {
+  _id: string;
+  name: string;
+  category: string;
+  address: {
+    street_number: string;
+    street_name: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+  geocode: {
+    lat: number;
+    lng: number;
+  };
+  creation_date: string;
+}
+
 
 export class NessieAPIIntegration {
   private apiKey: string;
@@ -91,7 +109,7 @@ export class NessieAPIIntegration {
           );
           
           // Transform Nessie purchase format to our format
-          const transformedTransactions = this.transformPurchases(accountPurchases);
+          const transformedTransactions = await this.transformPurchases(accountPurchases);
           allTransactions.push(...transformedTransactions);
         } catch (error) {
           console.warn(`Failed to fetch transactions for account ${account._id}:`, error);
@@ -106,7 +124,7 @@ export class NessieAPIIntegration {
     }
   }
 
-  async getMerchantbyMerchantId(merchant_id: string): Promise<string> {
+  async getMerchantbyMerchantId(merchant_id: string): Promise<Merchant | null> {
     try {
       const response = await fetch(`${this.baseUrl}/merchants/${merchant_id}?key=${this.apiKey}`, {
         method: 'GET',
@@ -120,46 +138,44 @@ export class NessieAPIIntegration {
       }
 
       const merchantData = await response.json();
-      
-      // Return the merchant name, fallback to merchant_id if name is not available
-      return merchantData.name || merchantData.merchant_name || merchant_id;
+      return merchantData;
     } catch (error) {
       console.error('Failed to fetch merchant:', error);
-      // Return the merchant_id as fallback if API call fails
-      return merchant_id;
+      return null;
     }
   }
 
   /**
    * Transform Nessie API purchase format to our standard format
    */
-  private transformPurchases(nessiePurchases: any[]): Transaction[] {
-    return nessiePurchases.map((purchase: any) => ({
-      date: purchase.purchase_date, // Nessie uses YYYY-MM-DD format
-      category: this.mapPurchaseCategory(purchase.description),
-      amount: Math.abs(purchase.amount) // Make positive for spending analysis
-    }));
+  private async transformPurchases(nessiePurchases: any[]): Promise<Transaction[]> {
+    const transformedPurchases = await Promise.all(
+      nessiePurchases.map(async (purchase: any) => ({
+        date: purchase.purchase_date, // Nessie uses YYYY-MM-DD format
+        category: await this.mapPurchaseCategory(purchase.merchant_id),
+        amount: Math.abs(purchase.amount), // Make positive for spending analysis
+        product: purchase.description || 'Unknown Product'
+      }))
+    );
+    
+    return transformedPurchases;
   }
 
   /**
-   * Map purchase descriptions to our standard categories
+   * Map merchant ID to category by querying merchant API
    */
-  private mapPurchaseCategory(description: string): string {
-    const desc = description.toLowerCase();
-    
-    if (desc.includes('takeout') || desc.includes('restaurant') || desc.includes('food')) {
-      return 'Food';
-    } else if (desc.includes('grocery') || desc.includes('grocery')) {
-      return 'Food';
-    } else if (desc.includes('gas') || desc.includes('fuel')) {
-      return 'Transport';
-    } else if (desc.includes('shopping') || desc.includes('store')) {
-      return 'Shopping';
-    } else if (desc.includes('coffee') || desc.includes('cafe')) {
-      return 'Food';
-    } else if (desc.includes('entertainment') || desc.includes('movie') || desc.includes('game')) {
-      return 'Entertainment';
-    } else {
+  private async mapPurchaseCategory(merchant_id: string): Promise<string> {
+    try {
+      const merchant = await this.getMerchantbyMerchantId(merchant_id);
+      
+      if (merchant && merchant.category) {
+        return merchant.category;
+      }
+      
+      // Fallback to 'Other' if merchant data is not available
+      return 'Other';
+    } catch (error) {
+      console.error('Failed to map purchase category:', error);
       return 'Other';
     }
   }

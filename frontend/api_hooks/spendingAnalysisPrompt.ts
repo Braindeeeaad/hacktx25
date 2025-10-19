@@ -76,10 +76,12 @@ Respond ONLY with valid JSON:
 
 ## CRITICAL REQUIREMENTS:
 - Analyze ONLY the data provided
+- This data should have the date, category, amount and type of product that the user buys
 - Connect spending to specific psychological patterns
 - Provide research-based insights
 - Give actionable, specific recommendations
 - Maintain empathetic yet professional tone
-- Keep the insights specific to the person rather than general public or general trends.
+- Keep the insights hyperspecific to the person rather than general public or general trends.
 - Always give at least 2-3 linked insights for how to reverse noticed trend under each recommendation, aim for 2-3 linked insights.
+- When you are creating this insight, make sure to include a specific statistic or purchase that the user made that support the insight.
 - Focus on the psychological-financial connection`;

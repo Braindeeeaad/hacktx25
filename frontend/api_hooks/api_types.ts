@@ -39,6 +39,7 @@ export interface Transaction {
   date: string;
   category: string;
   amount: number;
+  product: string;
   // add where its from not use in gemini correlation analysis but to display in past transcations
 }
 
