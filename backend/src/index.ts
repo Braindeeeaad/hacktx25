@@ -11,12 +11,12 @@ import { notFoundHandler } from './database/middleware/notFoundHandler';
 dotenv.config({ path: './src/.env' });
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '8000', 10);
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8081', 'http://localhost:19006'], // Add your frontend ports
+  origin: true, // Allow all origins for testing
   credentials: true
 }));
 app.use(morgan('combined'));
@@ -40,10 +40,11 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`📈 Emotional data API: http://localhost:${PORT}/api/emotional-data`);
+  console.log(`📱 Mobile access: http://10.148.16.170:${PORT}/api/emotional-data`);
 });
 
 export default app;

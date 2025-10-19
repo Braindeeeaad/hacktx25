@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import EmotionLogging from '../../components/EmotionLogging';
 import { LineChart } from 'react-native-gifted-charts';
 import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useEmail } from '../../app/emailContext';
+import { useEmail } from '../../contexts/emailContext';
 
 // API service functions
-const API_BASE_URL = 'http://localhost:8000/api/emotional-data';
+const API_BASE_URL = 'http://10.148.16.170:8000/api/emotional-data';
 
 interface WellbeingData {
   id: string;
@@ -26,14 +26,38 @@ interface WellbeingData {
 
 const fetchUserWellbeingData = async (userId: string): Promise<WellbeingData[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/${userId}?limit=30`);
+    console.log('🔍 Attempting to fetch data for user:', userId);
+    console.log('🌐 API URL:', `${API_BASE_URL}/user/${userId}?limit=7`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(`${API_BASE_URL}/user/${userId}?limit=7`, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    console.log('📡 Response status:', response.status);
+    console.log('📡 Response headers:', response.headers);
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
+    
     const result = await response.json();
+    console.log('✅ API Success:', result);
     return result.data || [];
   } catch (error) {
-    console.error('Error fetching wellbeing data:', error);
+    console.error('❌ Error fetching wellbeing data:', error);
+    console.error('❌ Error type:', typeof error);
+    console.error('❌ Error message:', error instanceof Error ? error.message : 'Unknown error');
     return [];
   }
 };
@@ -119,6 +143,7 @@ export default function WellbeingPage() {
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [quizTaken, setQuizTaken] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -155,7 +180,7 @@ export default function WellbeingPage() {
   const currentColor = colors[Math.floor(Math.max(0, currentScore / 25 - 1))];
 
   // Handle quiz completion
-  const handleQuizComplete = () => {
+  const handleQuizComplete = async () => {
     setModalVisible(false);
     setQuizTaken(true);
     // Refresh data after quiz completion

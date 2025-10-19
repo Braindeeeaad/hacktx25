@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { useEmail } from '../app/emailContext';
+import { useEmail } from '../contexts/emailContext';
 
 type UserState = {
   "Well-being": number;
@@ -53,7 +53,7 @@ export default function EmotionLogging(props: Props) {
         // Call your backend API
         console.log('Sending data to backend:', wellbeingData);
         
-        const response = await fetch('http://localhost:8000/api/emotional-data', {
+        const response = await fetch('http://10.148.16.170:8000/api/emotional-data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
