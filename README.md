@@ -5,25 +5,7 @@
 
 ---
 
-## 🧠 Table of Contents
-
-- [About](#about)
-- [Tech Stack](#tech-stack)
-- [Repository Structure](#repository-structure)
-- [Requirements](#requirements)
-- [Setup & Run (Local)](#setup--run-local)
-  - [Backend (Server)](#backend-server)
-  - [Frontend (Expo App)](#frontend-expo-app)
-- [Environment Variables](#environment-variables)
-- [API](#api)
-- [Development Notes & Troubleshooting](#development-notes--troubleshooting)
-- [Contributing](#contributing)
-- [Credits](#credits)
-- [License](#license)
-
----
-
-## 📘 About
+## About
 
 **Well Spent** is a full-stack project built for **HackTX 2025** that seamlessly integrates financial tracking and emotional analysis.  
 It leverages **Gemini AI** to interpret correlations between a user’s mood and their spending patterns, helping them identify triggers behind impulsive purchases and build healthier financial habits.
@@ -32,12 +14,13 @@ Through a clean mobile interface and a connected backend, users can log emotions
 
 ---
 
-## 📱 Video Demo
+## Video Demo
 
-INSERT HERE
+*Coming soon*
+
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
 **Frontend:**  
 - Expo / React Native  
@@ -68,7 +51,7 @@ INSERT HERE
 
 ---
 
-## 🗂️ Repository Structure
+## Repository Structure
 
 ```
 hacktx25/
@@ -90,7 +73,7 @@ hacktx25/
 
 ---
 
-## 💻 Requirements
+## Requirements
 
 - **Node.js** v16+ (v18 recommended)  
 - **npm** or **Yarn**  
@@ -99,16 +82,9 @@ hacktx25/
 
 ---
 
-## 🚀 Setup & Run (Local)
+## Setup & Run (Local)
 
-### 1️⃣ Clone the Repository
-
-```bash
-git clone https://github.com/Braindeeeaad/hacktx25.git
-cd hacktx25
-```
-
-### 2️⃣ Backend (Server)
+### Backend (Server)
 
 ```bash
 cd backend
@@ -130,7 +106,7 @@ If testing on Expo Go, expose the backend to your phone with ngrok:
 ngrok http 3000
 ```
 
-### 3️⃣ Frontend (Expo App)
+### Frontend (Expo App)
 
 ```bash
 cd ../frontend
@@ -145,7 +121,7 @@ If the backend runs locally, update your frontend `.env` or config to use either
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 Create `.env` files in both `backend` and `frontend` directories.
 
@@ -164,7 +140,7 @@ EXPO_PUBLIC_API_KEY=your_api_key
 
 ---
 
-## 🧩 API
+## API
 
 | Method | Endpoint | Description |
 |--------|-----------|-------------|
@@ -175,7 +151,7 @@ EXPO_PUBLIC_API_KEY=your_api_key
 
 ---
 
-## 🧰 Development Notes & Troubleshooting
+## Development Notes & Troubleshooting
 
 - **Expo Go not connecting?**  
   Replace `localhost` with your machine’s IP or use ngrok.
@@ -188,7 +164,7 @@ EXPO_PUBLIC_API_KEY=your_api_key
 
 ---
 
-## 👥 Credits
+## Credits
 
 Developed for **HackTX 2025** by:  
 - [Aryan Verma](https://github.com/aryanjverma)  
@@ -198,11 +174,32 @@ Developed for **HackTX 2025** by:
 
 ---
 
-## 📜 License
+## License
 
-This project is currently unlicensed.  
-If you plan to open-source it, add a `LICENSE` file (MIT recommended).
+MIT License  
+
+Copyright (c) 2025 Aryan Verma, Abhilash Sunkara,  
+Indrajith Thyagaraja, and Rishi Sakhamuri.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy  
+of this software and associated documentation files (the “Software”), to deal  
+in the Software without restriction, including without limitation the rights  
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell  
+copies of the Software, and to permit persons to whom the Software is  
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in  
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER  
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  
+THE SOFTWARE.
 
 ---
 
-_Repository link:_ [https://github.com/Braindeeeaad/hacktx25](https://github.com/Braindeeeaad/hacktx25)
+_Repository link:_ [https://github.com/Braindeeeaad/hacktx25](https://github.com/Braindeeeaad)
+````
