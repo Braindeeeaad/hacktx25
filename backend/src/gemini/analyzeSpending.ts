@@ -122,7 +122,9 @@ function createFallbackAnalysis(data: Transaction[]): AnalysisResult {
     trend: processedData.categoryChanges[category].startsWith('+') ? 'up' as const : 
            processedData.categoryChanges[category].startsWith('-') ? 'down' as const : 'stable' as const,
     change: processedData.categoryChanges[category],
-    note: `Total spent: $${processedData.categoryTotals[category].toFixed(2)}`
+    shortInsight: `Spending ${processedData.categoryChanges[category]} in ${category}`,
+    detailedAnalysis: `Total spent: $${processedData.categoryTotals[category].toFixed(2)} in ${category}. ${processedData.categoryChanges[category].startsWith('+') ? 'This increase suggests potential emotional spending or lifestyle changes.' : 'This decrease indicates improved spending control.'}`,
+    wellnessAdvice: processedData.categoryChanges[category].startsWith('+') ? 'Consider mindfulness before purchases in this category' : undefined
   }));
 
   return {
@@ -134,9 +136,39 @@ function createFallbackAnalysis(data: Transaction[]): AnalysisResult {
     categories,
     anomalies: processedData.anomalies,
     recommendations: [
-      'Consider setting up budget alerts for high-spending categories.',
-      'Review your spending patterns weekly to identify trends.',
-      'Set specific goals for each spending category.'
+      {
+        shortInsight: 'Set budget alerts',
+        detailedAdvice: 'Consider setting up budget alerts for high-spending categories to maintain financial control.',
+        linkedInsights: ['Overall spending patterns detected'],
+        linkedAnomalies: [],
+        category: 'financial' as const
+      },
+      {
+        shortInsight: 'Weekly review',
+        detailedAdvice: 'Review your spending patterns weekly to identify trends and make timely adjustments.',
+        linkedInsights: ['Regular monitoring helps identify patterns'],
+        linkedAnomalies: [],
+        category: 'behavioral' as const
+      },
+      {
+        shortInsight: 'Set category goals',
+        detailedAdvice: 'Set specific goals for each spending category to align with your financial objectives.',
+        linkedInsights: ['Category-specific spending analysis available'],
+        linkedAnomalies: [],
+        category: 'financial' as const
+      }
+    ],
+    wellnessTips: [
+      {
+        trigger: 'stress',
+        shortTip: 'Try 5-minute breathing',
+        detailedTip: 'When feeling stressed, try 5 minutes of deep breathing to reduce impulse spending.'
+      },
+      {
+        trigger: 'low_mood',
+        shortTip: 'Call a friend',
+        detailedTip: 'Social connection can provide mood boost without retail therapy.'
+      }
     ]
   };
 }

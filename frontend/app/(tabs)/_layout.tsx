@@ -25,7 +25,7 @@ export default function RootLayout() {
         }}
       />
       <Tabs.Screen
-        name="WellbeingPage"
+        name="EmotionLogging"
         options={{
           title: 'Wellbeing',
           headerShown: false,

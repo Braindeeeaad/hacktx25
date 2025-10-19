@@ -47,7 +47,7 @@ function displayFullAnalysis(analysis: any) {
     console.log(`\n${index + 1}. ${category.category.toUpperCase()}`);
     console.log(`   Trend: ${category.trend.toUpperCase()}`);
     console.log(`   Change: ${category.change}`);
-    console.log(`   AI Insight: ${category.note}`);
+    console.log(`   AI Insight: ${category.detailedAnalysis}`);
   });
   
   // Anomalies Section
@@ -57,7 +57,7 @@ function displayFullAnalysis(analysis: any) {
     analysis.anomalies.forEach((anomaly: any, index: number) => {
       console.log(`\n${index + 1}. ${anomaly.date} - ${anomaly.category}`);
       console.log(`   Amount: $${anomaly.amount}`);
-      console.log(`   Reason: ${anomaly.reason}`);
+      console.log(`   Reason: ${anomaly.detailedReason}`);
     });
   } else {
     console.log('\n✅ NO ANOMALIES DETECTED');
@@ -68,9 +68,27 @@ function displayFullAnalysis(analysis: any) {
   // Recommendations Section
   console.log('\n💡 AI RECOMMENDATIONS');
   console.log('-'.repeat(40));
-  analysis.recommendations.forEach((rec: string, index: number) => {
-    console.log(`\n${index + 1}. ${rec}`);
+  analysis.recommendations.forEach((rec: any, index: number) => {
+    console.log(`\n${index + 1}. ${rec.shortInsight}`);
+    console.log(`   ${rec.detailedAdvice}`);
+    console.log(`   Category: ${rec.category}`);
+    if (rec.linkedInsights && rec.linkedInsights.length > 0) {
+      console.log(`   Linked Insights: ${rec.linkedInsights.join(', ')}`);
+    }
+    if (rec.linkedAnomalies && rec.linkedAnomalies.length > 0) {
+      console.log(`   Linked Anomalies: ${rec.linkedAnomalies.join(', ')}`);
+    }
   });
+
+  // Wellness Tips Section
+  if (analysis.wellnessTips && analysis.wellnessTips.length > 0) {
+    console.log('\n🧘 WELLNESS TIPS');
+    console.log('-'.repeat(40));
+    analysis.wellnessTips.forEach((tip: any, index: number) => {
+      console.log(`\n${index + 1}. ${tip.trigger.toUpperCase()}: ${tip.shortTip}`);
+      console.log(`   ${tip.detailedTip}`);
+    });
+  }
   
   console.log('\n' + '='.repeat(80));
   console.log('🎯 ANALYSIS COMPLETE');
