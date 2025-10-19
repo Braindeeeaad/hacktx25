@@ -1,6 +1,5 @@
-import React from "react";
-import { useState } from "react"; 
-import { View, Text, StyleSheet, Button } from "react-native";
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import Slider from '@react-native-community/slider';
 
 
@@ -32,48 +31,37 @@ export default function EmotionLogging(props: Props) {
     setUserState(initialUserState);
   }
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Log your Well-Being</Text>
-      <Text>On a scale of 1 to 10 rate:</Text>
-      {categories.map((category) => 
-        <React.Fragment key={category.key}>
-        <Text>{category.title}</Text>
-        <Text>{category.options[Math.floor((userState[category.key] - 1) / 2)]}</Text>
-        <Slider
-          style={{width: 200, height: 40}}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={userState[category.key]}
-          onValueChange={(v) => setCategoryValue(category.key, v)}
-          tapToSeek
-          renderStepNumber
-          minimumTrackTintColor="#000000"
-          maximumTrackTintColor="#000000"
-        />
-        </React.Fragment>
-      )}
-      <Button title="Submit"
-              onPress={() =>{
-                             handleSubmit();
-                             props.closeTab();}}/>
+    <View className="bg-white rounded-2xl px-6 py-6 items-center w-full max-w-md">
+      <Text className="text-lg font-semibold mb-2 text-capitalblue">Log your Well-Being</Text>
+      <Text className="mb-4 text-gray-700">On a scale of 1 to 10 rate:</Text>
+      {categories.map((category) => (
+        <View key={category.key} className="w-full mb-4">
+          <Text className="text-base font-semibold text-gray-800 mb-1">{category.title}</Text>
+          <Text className="text-xs text-gray-500 mb-1">{category.options[Math.floor((userState[category.key] - 1) / 2)]}</Text>
+          <Slider
+            style={{ width: 200, height: 40 }}
+            minimumValue={1}
+            maximumValue={10}
+            step={1}
+            value={userState[category.key]}
+            onValueChange={(v) => setCategoryValue(category.key, v)}
+            tapToSeek
+            renderStepNumber
+            minimumTrackTintColor="#2d1ba1"
+            maximumTrackTintColor="#e5e7eb"
+          />
+        </View>
+      ))}
+      <TouchableOpacity
+        className="mt-2 bg-capitalblue rounded-lg px-6 py-2 shadow-sm w-full"
+        onPress={() => {
+          handleSubmit();
+          props.closeTab();
+        }}
+      >
+        <Text className="text-white text-center font-semibold text-base">Submit</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    // remove flex: 1
-    alignSelf: 'center',      // center the container in its parent
-    alignItems: 'center',     // center children horizontally inside the container
-    // remove justifyContent (don't vertically stretch/center the container)
-    backgroundColor: '#ffffffff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  title: {
-    fontSize: 35,
-    fontWeight: 'bold',
-  },
-});
