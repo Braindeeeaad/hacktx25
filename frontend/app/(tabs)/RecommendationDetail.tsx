@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 interface RecommendationDetailProps {
   title: string;
@@ -10,22 +11,16 @@ interface RecommendationDetailProps {
 }
 
 export default function RecommendationDetail() {
-  const router = useRouter();
+  const navigation = useNavigation<StackNavigationProp<any>>();
+  const route = useRoute();
+  const params = route.params as any;
   
-  // For now, we'll use static data. In a real app, this would come from navigation params
+  // Get recommendation data from navigation params
   const recommendationData: RecommendationDetailProps = {
-    title: "Emergency Fund Optimization",
-    overview: "Based on your spending patterns and financial goals, we've identified several opportunities to strengthen your financial foundation and improve your long-term financial health.",
-    insights: [
-      "Your current emergency fund covers only 2.3 months of expenses, below the recommended 6-month minimum",
-      "You're spending 23% more on discretionary items compared to last month",
-      "Your savings rate has decreased by 8% over the past quarter"
-    ],
-    recommendations: [
-      "Increase emergency fund contributions by $200/month to reach 6-month coverage within 18 months",
-      "Set up automatic transfers to a high-yield savings account earning 4.5% APY",
-      "Review and cancel 2-3 unused subscriptions to free up $45/month for emergency fund"
-    ]
+    title: (params?.title as string) || "Financial Recommendation",
+    overview: (params?.overview as string) || "Based on your financial data, here are some personalized recommendations to help improve your financial health.",
+    insights: params?.insights ? JSON.parse(params.insights as string) : [],
+    recommendations: params?.recommendations ? JSON.parse(params.recommendations as string) : []
   };
 
   return (
@@ -34,7 +29,7 @@ export default function RecommendationDetail() {
       <View className="bg-capitalblue px-6 py-8 pt-20">
         <View className="flex-row items-center mb-4">
           <TouchableOpacity 
-            onPress={() => router.replace('/FinancialPage')}
+            onPress={() => navigation.goBack()}
             className="mr-4"
           >
             <Ionicons name="arrow-back" size={24} color="white" />
