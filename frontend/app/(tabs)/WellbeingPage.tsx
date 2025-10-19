@@ -1,34 +1,225 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import EmotionLogging from '../../components/EmotionLogging';
 import { LineChart } from 'react-native-gifted-charts';
 import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useEmail } from '../../contexts/emailContext';
 
+// API service functions
+const API_BASE_URL = 'http://10.148.16.170:8000/api/emotional-data';
+
+interface WellbeingData {
+  id: string;
+  userId: string;
+  date: string;
+  overall_wellbeing: number;
+  sleep_quality: number;
+  physical_activity: number;
+  time_with_family_friends: number;
+  diet_quality: number;
+  stress_levels: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const fetchUserWellbeingData = async (userId: string): Promise<WellbeingData[]> => {
+  try {
+    console.log('🔍 Attempting to fetch data for user:', userId);
+    console.log('🌐 API URL:', `${API_BASE_URL}/user/${userId}?limit=7`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(`${API_BASE_URL}/user/${userId}?limit=7`, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    console.log('📡 Response status:', response.status);
+    console.log('📡 Response headers:', response.headers);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ API Success:', result);
+    return result.data || [];
+  } catch (error) {
+    console.error('❌ Error fetching wellbeing data:', error);
+    console.error('❌ Error type:', typeof error);
+    console.error('❌ Error message:', error instanceof Error ? error.message : 'Unknown error');
+    return [];
+  }
+};
+
+const calculateWellnessScore = (data: WellbeingData[]): number => {
+  if (data.length === 0) return 0;
+  
+  const latest = data[0]; // Most recent entry
+  const weights = {
+    overall_wellbeing: 0.3,
+    sleep_quality: 0.2,
+    physical_activity: 0.15,
+    time_with_family_friends: 0.1,
+    diet_quality: 0.15,
+    stress_levels: 0.1 // Lower stress is better, so we'll invert this
+  };
+  
+  const score = (
+    latest.overall_wellbeing * weights.overall_wellbeing +
+    latest.sleep_quality * weights.sleep_quality +
+    latest.physical_activity * weights.physical_activity +
+    latest.time_with_family_friends * weights.time_with_family_friends +
+    latest.diet_quality * weights.diet_quality +
+    (11 - latest.stress_levels) * weights.stress_levels // Invert stress (lower is better)
+  ) * 10; // Scale to 0-100
+  
+  return Math.round(score);
+};
+
+const generateRecommendations = (data: WellbeingData[]): string[] => {
+  if (data.length === 0) {
+    return [
+      "Take your first wellness assessment to get personalized recommendations",
+      "Start tracking your daily mood and activities",
+      "Set up a regular wellness routine"
+    ];
+  }
+  
+  const latest = data[0];
+  const recommendations: string[] = [];
+  
+  if (latest.sleep_quality < 6) {
+    recommendations.push("Try to get 7-8 hours of sleep tonight");
+  }
+  
+  if (latest.physical_activity < 5) {
+    recommendations.push("Take a 10-minute walk or do some light stretching");
+  }
+  
+  if (latest.diet_quality < 6) {
+    recommendations.push("Try to include more fruits and vegetables in your meals");
+  }
+  
+  if (latest.stress_levels > 6) {
+    recommendations.push("Try a 5-minute mindfulness or breathing exercise");
+  }
+  
+  if (latest.time_with_family_friends < 5) {
+    recommendations.push("Reach out to a friend or family member today");
+  }
+  
+  if (recommendations.length === 0) {
+    recommendations.push("Great job! Keep up your healthy habits");
+  }
+  
+  return recommendations;
+};
+
+const formatChartData = (data: WellbeingData[]): { value: number; label: string }[] => {
+  return data.slice(0, 7).reverse().map((entry, index) => ({
+    value: calculateWellnessScore([entry]),
+    label: new Date(entry.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })
+  }));
+};
 
 export default function WellbeingPage() {
+  const { email } = useEmail();
   const router = useRouter();
-  function getCurrentScore() {
-    return 75; // REPLACE WITH API CALL
-  }
-  function getRecommendations() {
-    return ["Try a short mindfulness exercise today", "Aim for 7-8 hours of sleep tonight", 
-      "Take a walk or stretch break"]; //REPLACE WITH API CALL
-  }
-  const data = [
-    { value: 50, label: '10/15' },
-    { value: 80, label: '10/16' },
-    { value: 90, label: '10/17' },
-    { value: 70, label: '10/18' },
-  ]; // REPLACE WITH API CALL
-  const USER_ID = "f"; // REPLACE WITH API CALL
-  const currentScore = getCurrentScore();
-  const colors = ['#c20000ff', '#eb9e2bff', '#f8d40aff', '#2c9104ff'];
-  const currentColor = colors[Math.floor(currentScore / 25 - 1)];
-  const [quizTaken, setQuizTaken] = useState(false); //REPLACE WITH API CALL
+  
+  // State management
+  const [wellbeingData, setWellbeingData] = useState<WellbeingData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const recommendations = getRecommendations();
+  const [quizTaken, setQuizTaken] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    const loadWellbeingData = async () => {
+      if (!email) {
+        setError('Please log in to view your wellbeing data');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchUserWellbeingData(email);
+        setWellbeingData(data);
+        setQuizTaken(data.length > 0);
+      } catch (err) {
+        console.error('Error loading wellbeing data:', err);
+        setError('Failed to load wellbeing data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadWellbeingData();
+  }, [email]);
+
+  // Calculate derived data
+  const currentScore = calculateWellnessScore(wellbeingData);
+  const recommendations = generateRecommendations(wellbeingData);
+  const chartData = formatChartData(wellbeingData);
+  
+  const colors = ['#c20000ff', '#eb9e2bff', '#f8d40aff', '#2c9104ff'];
+  const currentColor = colors[Math.floor(Math.max(0, currentScore / 25 - 1))];
+
+  // Handle quiz completion
+  const handleQuizComplete = async () => {
+    setModalVisible(false);
+    setQuizTaken(true);
+    // Refresh data after quiz completion
+    if (email) {
+      fetchUserWellbeingData(email).then(setWellbeingData);
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#2d1ba1" />
+        <Text className="text-gray-600 mt-4">Loading your wellness data...</Text>
+      </View>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center px-6">
+        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <Text className="text-red-600 text-lg font-semibold mt-4 text-center">
+          {error}
+        </Text>
+        <TouchableOpacity 
+          className="mt-4 bg-capitalblue rounded-lg px-6 py-3"
+          onPress={() => {
+            if (email) {
+              fetchUserWellbeingData(email).then(setWellbeingData);
+            }
+          }}
+        >
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
@@ -77,8 +268,7 @@ export default function WellbeingPage() {
             >
               <View className="flex-1 bg-black/50 justify-center items-center">
                 <View className="bg-white p-6 rounded-xl w-80">
-                  <EmotionLogging closeTab={() => {setModalVisible(false) 
-                                                  setQuizTaken(true)}} userId={USER_ID}/>
+                  <EmotionLogging closeTab={handleQuizComplete} />
                 </View>
               </View>
             </Modal>
@@ -97,7 +287,15 @@ export default function WellbeingPage() {
           </View>
 
           <View className="flex-1 items-center">
-            <LineChart data={data} />
+            {chartData.length > 0 ? (
+              <LineChart data={chartData} />
+            ) : (
+              <View className="items-center py-8">
+                <Text className="text-gray-500 text-center">
+                  No wellness data yet.{'\n'}Take your first quiz to see your progress!
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -107,12 +305,21 @@ export default function WellbeingPage() {
         <Text className="text-capitalblue text-lg font-semibold mb-4 mx-4">
           Smart Recommendations
         </Text>
-        {recommendations.map((recommendation) => (
-          <Recommendation 
-            short={recommendation}
-            router={router}
-          />
-        ))}
+        {recommendations.length > 0 ? (
+          recommendations.map((recommendation, index) => (
+            <Recommendation 
+              key={index}
+              short={recommendation}
+              router={router}
+            />
+          ))
+        ) : (
+          <View className="mx-4 bg-white rounded-lg p-4 mb-3">
+            <Text className="text-gray-500 text-center">
+              Take your wellness quiz to get personalized recommendations
+            </Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );

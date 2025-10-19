@@ -4,7 +4,7 @@ import { useColorScheme, View , ActivityIndicator} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { EmailProvider, useEmail } from './emailContext';
+import { EmailProvider, useEmail } from '../contexts/emailContext';
 import { auth } from '../firebaseConfig';
 // Component to handle email context updates based on Firebase auth state
 function AuthEmailHandler({ children }: { children: React.ReactNode }) {

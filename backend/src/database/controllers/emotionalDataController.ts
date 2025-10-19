@@ -15,7 +15,7 @@ export class EmotionalDataController {
     try {
       const wellbeingData: WellbeingDataRequest = req.body;
       
-      const result = await this.d1Service.createWellbeingData(wellbeingData);
+      const result = await this.databaseService.createWellbeingData(wellbeingData);
 
       res.status(201).json({
         success: true,
@@ -32,7 +32,7 @@ export class EmotionalDataController {
     try {
       const batchData: WellbeingDataBatchRequest = req.body;
       
-      const results = await this.d1Service.createWellbeingDataBatch(batchData);
+      const results = await this.databaseService.createWellbeingDataBatch(batchData);
 
       res.status(201).json({
         success: true,
@@ -49,7 +49,7 @@ export class EmotionalDataController {
     try {
       const { id } = req.params;
       
-      const result = await this.d1Service.getWellbeingDataById(id);
+      const result = await this.databaseService.getWellbeingDataById(id);
       
       if (!result) {
         return next(createError('Wellbeing data not found', 404));
@@ -75,7 +75,7 @@ export class EmotionalDataController {
         endDate: req.query.endDate as string
       };
 
-      const result = await this.d1Service.getWellbeingDataByUserId(userId, options);
+      const result = await this.databaseService.getWellbeingDataByUserId(userId, options);
 
       res.status(200).json({
         success: true,
@@ -97,7 +97,7 @@ export class EmotionalDataController {
         return next(createError('startDate and endDate are required', 400));
       }
 
-      const result = await this.d1Service.getWellbeingDataByDateRange(
+      const result = await this.databaseService.getWellbeingDataByDateRange(
         userId, 
         startDate as string, 
         endDate as string
@@ -124,7 +124,7 @@ export class EmotionalDataController {
         endDate: req.query.endDate as string
       };
 
-      const { data, total } = await this.d1Service.getAllWellbeingData(options);
+      const { data, total } = await this.databaseService.getAllWellbeingData(options);
       
       const totalPages = Math.ceil(total / (options.limit || 10));
 
@@ -150,7 +150,7 @@ export class EmotionalDataController {
       const { id } = req.params;
       const updateData = req.body;
 
-      const result = await this.d1Service.updateWellbeingData(id, updateData);
+      const result = await this.databaseService.updateWellbeingData(id, updateData);
       
       if (!result) {
         return next(createError('Wellbeing data not found', 404));
@@ -171,7 +171,7 @@ export class EmotionalDataController {
     try {
       const { id } = req.params;
       
-      const deleted = await this.d1Service.deleteWellbeingData(id);
+      const deleted = await this.databaseService.deleteWellbeingData(id);
       
       if (!deleted) {
         return next(createError('Wellbeing data not found', 404));
@@ -189,7 +189,7 @@ export class EmotionalDataController {
   // Initialize database schema
   initializeDatabase = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.d1Service.initializeSchema();
+      await this.databaseService.initializeSchema();
       
       res.status(200).json({
         success: true,

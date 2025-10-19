@@ -221,6 +221,353 @@ export class NessieAPIIntegration {
       endDate.toISOString().split('T')[0]
     );
   }
+
+  // ========================================
+  // CUSTOMER MANAGEMENT METHODS
+  // ========================================
+
+  /**
+   * Create a new customer
+   */
+  async createCustomer(customerData: {
+    first_name: string;
+    last_name: string;
+    address: {
+      street_number: string;
+      street_name: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+  }) {
+    try {
+      const response = await fetch(`${this.baseUrl}/customers?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(customerData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to create customer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all customers
+   */
+  async getAllCustomers() {
+    try {
+      const response = await fetch(`${this.baseUrl}/customers?key=${this.apiKey}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch customers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get customer by ID
+   */
+  async getCustomer(customerId: string) {
+    try {
+      const response = await fetch(`${this.baseUrl}/customers/${customerId}?key=${this.apiKey}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch customer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a customer
+   */
+  async updateCustomer(customerId: string, customerData: {
+    first_name?: string;
+    last_name?: string;
+    address?: {
+      street_number?: string;
+      street_name?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+    };
+  }) {
+    try {
+      const response = await fetch(`${this.baseUrl}/customers/${customerId}?key=${this.apiKey}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(customerData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to update customer:', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // ACCOUNT MANAGEMENT METHODS
+  // ========================================
+
+  /**
+   * Create a new account for the current customer
+   */
+  async createAccount(accountData: {
+    type: string;
+    nickname?: string;
+    rewards?: number;
+    balance?: number;
+  }) {
+    try {
+      const response = await fetch(`${this.baseUrl}/customers/${this.customerId}/accounts?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(accountData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to create account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new account for a specific customer
+   */
+  async createAccountForCustomer(customerId: string, accountData: {
+    type: string;
+    nickname?: string;
+    rewards?: number;
+    balance?: number;
+  }) {
+    try {
+      const response = await fetch(`${this.baseUrl}/customers/${customerId}/accounts?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(accountData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to create account for customer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get account by ID
+   */
+  async getAccount(accountId: string) {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/${accountId}?key=${this.apiKey}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an account
+   */
+  async updateAccount(accountId: string, accountData: {
+    type?: string;
+    nickname?: string;
+    rewards?: number;
+    balance?: number;
+  }) {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/${accountId}?key=${this.apiKey}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(accountData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to update account:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an account
+   */
+  async deleteAccount(accountId: string) {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/${accountId}?key=${this.apiKey}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // CONVENIENCE METHODS
+  // ========================================
+
+  /**
+   * Create a complete customer setup with default accounts
+   */
+  async createCustomerWithAccounts(customerData: {
+    first_name: string;
+    last_name: string;
+    address: {
+      street_number: string;
+      street_name: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+  }, defaultAccounts: Array<{
+    type: string;
+    nickname?: string;
+    rewards?: number;
+    balance?: number;
+  }> = [
+    { type: 'Checking', nickname: 'Primary Checking', balance: 1000 },
+    { type: 'Savings', nickname: 'Primary Savings', balance: 5000 }
+  ]) {
+    try {
+      // Create customer
+      const customer = await this.createCustomer(customerData) as any;
+      const newCustomerId = customer._id;
+
+      // Create default accounts
+      const accounts = [];
+      for (const accountData of defaultAccounts) {
+        const account = await this.createAccountForCustomer(newCustomerId, accountData);
+        accounts.push(account);
+      }
+
+      return {
+        customer,
+        accounts,
+        message: `Successfully created customer with ${accounts.length} accounts`
+      };
+    } catch (error) {
+      console.error('Failed to create customer with accounts:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get account details including customer info
+   */
+  async getAccountWithCustomer(accountId: string) {
+    try {
+      const [account, customer] = await Promise.all([
+        this.getAccount(accountId),
+        this.getCustomerByAccount(accountId)
+      ]);
+
+      return {
+        account,
+        customer
+      };
+    } catch (error) {
+      console.error('Failed to fetch account with customer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get customer that owns a specific account
+   */
+  async getCustomerByAccount(accountId: string) {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/${accountId}/customer?key=${this.apiKey}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nessie API Error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch customer by account:', error);
+      throw error;
+    }
+  }
 }
 
 /**

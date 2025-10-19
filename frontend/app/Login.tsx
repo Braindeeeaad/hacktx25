@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from '../firebaseConfig';
 import { router } from 'expo-router';
-import { useEmail } from './emailContext';
+import { useEmail } from '../contexts/emailContext';
 
 // Define navigation type (optional but nice for TypeScript)
 type RootStackParamList = {
