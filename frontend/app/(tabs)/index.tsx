@@ -1,9 +1,10 @@
 import { Text, View, ScrollView, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function Index() {
-  const router = useRouter();
+  const navigation = useNavigation<StackNavigationProp<any>>();
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
@@ -40,7 +41,7 @@ export default function Index() {
           {/* Financial Page Button */}
           <TouchableOpacity
             className="bg-white rounded-xl p-6 mb-6 border border-gray-200 shadow-sm"
-            onPress={() => router.push('/FinancialPage')}
+            onPress={() => navigation.push('FinancialPage')}
             activeOpacity={0.8}
           >
             <View className="flex-row items-center mb-4">
@@ -67,7 +68,7 @@ export default function Index() {
           {/* Wellbeing Page Button */}
           <TouchableOpacity
             className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-            onPress={() => router.push('/EmotionLogging')}
+            onPress={() => navigation.push('WellbeingPage')}
             activeOpacity={0.8}
           >
             <View className="flex-row items-center mb-4">
