@@ -7,19 +7,30 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "test": "ts-node src/gemini/testRunner.ts"
+    "test": "ts-node src/gemini/testRunner.ts",
+    "setup": "npm install && npm run init-db",
+    "init-db": "ts-node -e \"import('./src/database/examples/exampleUsage').then(m => m.runExamples())\"",
+    "example": "ts-node src/database/examples/exampleUsage.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "dotenv": "^16.4.5",
-    "axios": "^1.7.0"
+    "axios": "^1.7.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "@cloudflare/workers-types": "^4.20231025.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9",
     "typescript": "^5.0.0",
     "ts-node": "^10.9.0"
   },
-  "keywords": ["financial", "analysis", "gemini", "ai"],
+  "keywords": ["financial", "analysis", "gemini", "ai", "cloudflare", "d1"],
   "author": "HackTX25 Team",
   "license": "MIT"
 }
