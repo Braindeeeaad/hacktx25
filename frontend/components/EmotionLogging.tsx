@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useEmail } from '../contexts/emailContext';
+import { useAtom } from 'jotai';
+import { wellbeingDataAtom } from '@/atoms';
 
 type UserState = {
   "Well-being": number;
@@ -27,6 +29,8 @@ type Props = {
 };
 export default function EmotionLogging(props: Props) {
   const { email } = useEmail();
+  const [wellbeingData] = useAtom(wellbeingDataAtom);
+  
   const categories: { key: keyof UserState; title: string; options: string[] }[] = [
     { key: "Well-being", title: "Your overall well-being", options: ["Really sad", "Sad", "OK", "Good", "Amazing!"] },
     { key: "Sleep", title: "How much sleep you got", options: ["0-2 hours", "3-4 hours", "5-6 hours", "7-8 hours", "8+ hours"] },
@@ -40,6 +44,33 @@ export default function EmotionLogging(props: Props) {
   function setCategoryValue(key: keyof UserState, value: number) {
     setUserState(prev => ({ ...prev, [key]: value }));
   }
+
+  // Get the most recent wellbeing data date
+  const getLatestDate = (): string | null => {
+    if (!wellbeingData || wellbeingData.length === 0) {
+      return null;
+    }
+    
+    // Sort by date descending and get the most recent
+    const sortedData = [...wellbeingData].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    return sortedData[0].date;
+  };
+
+  // Helper function to format date for display
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  
   const handleSubmit = async () => {
       if (!email) {
         Alert.alert('Error', 'User email is required. Please log in first.');
@@ -49,10 +80,25 @@ export default function EmotionLogging(props: Props) {
       // Map userState to backend API format
       const today = new Date();
       const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-      
+      const latestDateString = getLatestDate();
+      const dateObject = new Date(latestDateString + "T00:00:00");
+
+      // 1. Increment the date by one day
+      // getTime() gets the milliseconds since the epoch.
+      // 24 * 60 * 60 * 1000 is the number of milliseconds in a day.
+      dateObject.setTime(dateObject.getTime() + (24 * 60 * 60 * 1000));
+
+      // 2. Format the new date back into "YYYY-MM-DD"
+      const year = dateObject.getFullYear();
+      // getMonth() is 0-indexed, so we add 1.
+      // padStart(2, '0') ensures it's always two digits (e.g., "05" instead of "5").
+      const month = String(dateObject.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObject.getDate()).padStart(2, '0');
+
+      const nextDate = `${year}-${month}-${day}`;
       const wellbeingData: WellbeingDataRequest = {
         userId: email, // Using email as userId
-        date: dateString,
+        date: nextDate,
         overall_wellbeing: userState["Well-being"],
         sleep_quality: userState["Sleep"],
         physical_activity: userState["Exercise"],

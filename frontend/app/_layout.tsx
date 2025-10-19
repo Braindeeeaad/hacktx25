@@ -4,6 +4,7 @@ import { useColorScheme, View , ActivityIndicator} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { Provider } from 'jotai';
 import { EmailProvider, useEmail } from '../contexts/emailContext';
 import { auth } from '../firebaseConfig';
 // Component to handle email context updates based on Firebase auth state
@@ -73,14 +74,16 @@ export default function RootLayout() {
   // 3. Render the Navigation Stack
   // If no redirection occurred, we render the stack.
   return (
-    <EmailProvider>
-      <AuthEmailHandler>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" /> // Protected routes
-          <Stack.Screen name="Login" /> // Public route
-        </Stack>
-      </AuthEmailHandler>
-    </EmailProvider>
+    <Provider>
+      <EmailProvider>
+        <AuthEmailHandler>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" /> // Protected routes
+            <Stack.Screen name="Login" /> // Public route
+          </Stack>
+        </AuthEmailHandler>
+      </EmailProvider>
+    </Provider>
   );
 }
 

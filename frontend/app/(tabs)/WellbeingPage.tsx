@@ -6,10 +6,19 @@ import Slider from '@react-native-community/slider';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useAtom } from 'jotai';
 import { useEmail } from '../../contexts/emailContext';
 import { WellbeingData, WellbeingResult, wellnessTip } from '@/api_hooks/api_types';
-import { GeminiIntegration } from '@/api_hooks/gemini_api';
-import { fetchUserWellbeingData, calculateWellnessScore } from '@/api_hooks/wellbeing_db_api';
+import { calculateWellnessScore } from '@/api_hooks/wellbeing_db_api';
+import { 
+  wellbeingDataAtom, 
+  wellnessAnalysisAtom,
+  loadingStatesAtom,
+  errorStatesAtom,
+  isDataReadyAtom,
+  isGeminiAnalysisReadyAtom,
+  triggerRefreshAtom
+} from '../../atoms';
 
 // API service functions
 const API_BASE_URL = 'https://webless-lustreless-adeline.ngrok-free.dev/api/emotional-data';
@@ -107,70 +116,35 @@ export default function WellbeingPage() {
   const { email } = useEmail();
   const navigation = useNavigation<StackNavigationProp<any>>();
   
-  // Initialize Gemini integration
-  const geminiIntegration = new GeminiIntegration();
+  // Jotai atoms
+  const [wellbeingData] = useAtom(wellbeingDataAtom);
+  const [wellnessAnalysis] = useAtom(wellnessAnalysisAtom);
+  const [loadingStates] = useAtom(loadingStatesAtom);
+  const [errorStates] = useAtom(errorStatesAtom);
+  const [isDataReady] = useAtom(isDataReadyAtom);
+  const [isGeminiAnalysisReady] = useAtom(isGeminiAnalysisReadyAtom);
+  const [, triggerRefresh] = useAtom(triggerRefreshAtom);
   
-  // State management
-  const [wellbeingData, setWellbeingData] = useState<WellbeingData[]>([]);
-  const [wellBeingRecommendations, setWellBeingRecommendations] = useState<wellnessTip[]>([])
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Local state management
   const [modalVisible, setModalVisible] = useState(false);
   const [quizTaken, setQuizTaken] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch data on component mount
-  useEffect(() => {
-    const loadWellbeingData = async () => {
-      if (!email) {
-        setError('Please log in to view your wellbeing data');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchUserWellbeingData(email);
-        setWellbeingData(data);
-        setQuizTaken(data.length > 0);
-        
-        // Analyze wellness data and update recommendations
-        if (data.length > 0) {
-          try {
-            console.log('Starting wellness analysis with data:', data);
-            const wellnessAnalysis = await geminiIntegration.analyzeWellness(data);
-            console.log('Received wellness analysis:', wellnessAnalysis);
-            if (wellnessAnalysis && wellnessAnalysis.length > 0) {
-              setWellBeingRecommendations(wellnessAnalysis);
-              console.log('Updated wellBeingRecommendations state');
-            } else {
-              console.log('No wellness tips received from analysis');
-            }
-          } catch (analysisError) {
-            console.error('Error analyzing wellness data:', analysisError);
-            // Don't set error state for analysis failures, just log them
-          }
-        }
-      } catch (err) {
-        console.error('Error loading wellbeing data:', err);
-        setError('Failed to load wellbeing data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadWellbeingData();
-  }, [email]);
-
+  // Update quiz taken state when wellbeing data changes
+  /* useEffect(() => {
+    if (wellbeingData) {
+      setQuizTaken(false);
+    }
+  }, [wellbeingData]);
+ */
   // Calculate derived data
-  const currentScore = calculateWellnessScore(wellbeingData);
-  const recommendations = generateRecommendations(wellbeingData);
-  const chartData = formatChartData(wellbeingData);
+  const currentScore = calculateWellnessScore(wellbeingData || []);
+  const recommendations = generateRecommendations(wellbeingData || []);
+  const chartData = formatChartData(wellbeingData || []);
   
   // Debug logging
-  console.log('Current wellBeingRecommendations state:', wellBeingRecommendations);
-  console.log('Current wellbeingData length:', wellbeingData.length);
+  console.log('Current wellnessAnalysis state:', wellnessAnalysis);
+  console.log('Current wellbeingData length:', wellbeingData?.length || 0);
   console.log('Current recommendations (fallback):', recommendations);
   
   const colors = ['#c20000ff', '#eb9e2bff', '#f8d40aff', '#2c9104ff'];
@@ -195,26 +169,9 @@ export default function WellbeingPage() {
       setQuizTaken(true);
       Alert.alert('Success', 'Your wellbeing data has been saved successfully!');
       
-      // Refresh data after quiz completion
-      const updatedData = await fetchUserWellbeingData(email);
-      setWellbeingData(updatedData);
-      
-      // Analyze the updated wellness data
-      if (updatedData.length > 0) {
-        try {
-          console.log('Starting wellness analysis after quiz with data:', updatedData);
-          const wellnessAnalysis = await geminiIntegration.analyzeWellness(updatedData);
-          console.log('Received wellness analysis after quiz:', wellnessAnalysis);
-          if (wellnessAnalysis && wellnessAnalysis.length > 0) {
-            setWellBeingRecommendations(wellnessAnalysis);
-            console.log('Updated wellBeingRecommendations state after quiz');
-          } else {
-            console.log('No wellness tips received from analysis after quiz');
-          }
-        } catch (analysisError) {
-          console.error('Error analyzing wellness data after quiz:', analysisError);
-        }
-      }
+      // Trigger a refresh of the data
+      triggerRefresh();
+      console.log('Wellbeing data saved, triggering data refresh');
     
     } catch (error) {
       console.error('Error submitting wellbeing data:', error);
@@ -223,7 +180,7 @@ export default function WellbeingPage() {
   };
 
   // Loading state
-  if (loading) {
+  if (!isDataReady.wellbeing && loadingStates.wellbeing) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center">
         <ActivityIndicator size="large" color="#2d1ba1" />
@@ -233,22 +190,18 @@ export default function WellbeingPage() {
   }
 
   // Error state
-  if (error) {
+  if (errorStates.wellbeing && !wellbeingData) {
     return (
       <View className="flex-1 bg-gray-50 justify-center items-center px-6">
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text className="text-red-600 text-lg font-semibold mt-4 text-center">
-          {error}
+          {errorStates.wellbeing}
         </Text>
         <TouchableOpacity 
           className="mt-4 bg-capitalblue rounded-lg px-6 py-3"
-          onPress={() => {
-            if (email) {
-              fetchUserWellbeingData(email).then(setWellbeingData);
-            }
-          }}
+          onPress={() => navigation.goBack()}
         >
-          <Text className="text-white font-semibold">Try Again</Text>
+          <Text className="text-white font-semibold">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -341,8 +294,15 @@ export default function WellbeingPage() {
         <Text className="text-capitalblue text-lg font-semibold mb-4 mx-4">
           Smart Recommendations
         </Text>
-        {wellBeingRecommendations.length > 0 ? (
-          wellBeingRecommendations.map((recommendation, index) => {
+        {loadingStates.geminiWellness ? (
+          <View className="mx-4 bg-white rounded-lg p-4 mb-3">
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator size="small" color="#1E40AF" />
+              <Text className="text-gray-600 ml-2">Generating recommendations...</Text>
+            </View>
+          </View>
+        ) : wellnessAnalysis && wellnessAnalysis.length > 0 ? (
+          wellnessAnalysis.map((recommendation, index) => {
             console.log('Rendering AI recommendation:', recommendation);
             return (
               <Recommendation 
@@ -354,7 +314,7 @@ export default function WellbeingPage() {
               />
             );
           })
-        ) : wellbeingData.length > 0 ? (
+        ) : wellbeingData && wellbeingData.length > 0 ? (
           // Show fallback recommendations if we have data but no AI recommendations
           recommendations.map((recommendation, index) => {
             console.log('Rendering fallback recommendation:', recommendation);
@@ -375,6 +335,9 @@ export default function WellbeingPage() {
             </Text>
           </View>
         )}
+      </View>
+      <View className='h-4 w-10'>
+
       </View>
     </ScrollView>
   );

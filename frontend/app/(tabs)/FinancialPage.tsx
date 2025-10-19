@@ -1,11 +1,19 @@
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BarChart, CurveType, LineChart, PieChart, PopulationPyramid, RadarChart, lineDataItem } from "react-native-gifted-charts";
-import { NessieAPIIntegration} from '@/api_hooks/nessie_api';
+import { useAtom } from 'jotai';
 import { useEffect, useState } from 'react';
-import { GeminiIntegration } from '@/api_hooks/gemini_api';
+import { 
+  financialDataAtom, 
+  financeScoreAtom, 
+  spendingAnalysisAtom,
+  loadingStatesAtom,
+  errorStatesAtom,
+  isDataReadyAtom,
+  isGeminiAnalysisReadyAtom
+} from '../../atoms';
 import { Transaction, ProcessedData, Anomaly, FinanceScore, accountType, purchaseType, AnalysisResult, Recommendation } from "@/api_hooks/api_types";
 
 interface RecommendationData {
@@ -22,31 +30,18 @@ interface WellnessScoreData {
 
 export default function FinancialPage() {
   const navigation = useNavigation<StackNavigationProp<any>>();
-  const gemini = new GeminiIntegration()
-  const nessie = new NessieAPIIntegration(
-    '2535e8ec7de75e2bb33a7e0bab0cc897',        // Your actual API key
-    '68f4a25a9683f20dd51a206a',           // Your actual customer ID
-    'http://api.nessieisreal.com' // Base URL
-  );
-
-  const [purchase_history, setPurchaseHistory] = useState<purchaseType[]>([]);
-  const [merchant_names, setMerchantNames] = useState<{[key: string]: string}>({});
-// ... (you probably need a user_account state too)
-  const [user_account, setUserAccount] = useState<accountType | null>(null);
-   const [wellnessScore, setWellnessScore] = useState<WellnessScoreData | null>(null);
-   const [isLoadingWellnessScore, setIsLoadingWellnessScore] = useState(false);
-   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
-
-// Function to transform purchase data to Transaction format
-const transformPurchasesToTransactions = (purchases: purchaseType[]): Transaction[] => {
-  return purchases.map((purchase) => ({
-    date: purchase.purchase_date,
-    category: purchase.description.slice(0, purchase.description.indexOf(" ")),
-    amount: Math.abs(purchase.amount), // Make positive for spending analysis
-    product: purchase.description || 'Unknown Product'
-  }));
-};
+  
+  // Jotai atoms
+  const [financialData] = useAtom(financialDataAtom);
+  const [financeScore] = useAtom(financeScoreAtom);
+  const [spendingAnalysis] = useAtom(spendingAnalysisAtom);
+  const [loadingStates] = useAtom(loadingStatesAtom);
+  const [errorStates] = useAtom(errorStatesAtom);
+  const [isDataReady] = useAtom(isDataReadyAtom);
+  const [isGeminiAnalysisReady] = useAtom(isGeminiAnalysisReadyAtom);
+  
+  // Local state for display
+  const [wellnessScore, setWellnessScore] = useState<WellnessScoreData | null>(null);
 
 // Function to map purchase descriptions to categories (similar to nessie_api.ts)
 const mapPurchaseCategory = (description: string): string => {
@@ -86,209 +81,16 @@ const getCategoryFromScore = (score: number): string => {
 // Recommendation data
 
 
-// This useEffect hook will run ONLY ONCE when the component mounts
+// Update wellness score when finance score changes
 useEffect(() => {
-  
-  // All your async logic lives inside this hook now
-  async function doSomethingWithAccount(account: accountType) {
-    console.log("Fetching purchases for account:", account._id);
-    const purchases = await nessie.getAccountPurchases(account._id);
-    setPurchaseHistory(purchases); // This will schedule a re-render
-    console.log("Purchases fetched!");
-    
-    // Fetch merchant names for all purchases
-    await fetchMerchantNames(purchases);
+  if (financeScore) {
+    const wellnessScoreData: WellnessScoreData = {
+      overall: financeScore.overall,
+      category: getCategoryFromScore(financeScore.overall)
+    };
+    setWellnessScore(wellnessScoreData);
   }
-
-  async function fetchMerchantNames(purchases: purchaseType[]) {
-    console.log("Fetching merchant names...");
-    const merchantNamesMap: {[key: string]: string} = {};
-    
-    // Get unique merchant IDs
-    const uniqueMerchantIds = [...new Set(purchases.map(p => p.merchant_id))];
-    
-    // Fetch merchant names for each unique merchant ID
-    for (const merchantId of uniqueMerchantIds) {
-      try {
-        const merchant = await nessie.getMerchantbyMerchantId(merchantId);
-        const merchantName = merchant?.name || merchantId;
-        merchantNamesMap[merchantId] = merchantName;
-        console.log(`Merchant ${merchantId}: ${merchantName}`);
-      } catch (error) {
-        console.error(`Failed to fetch merchant name for ${merchantId}:`, error);
-        merchantNamesMap[merchantId] = merchantId; // Fallback to merchant ID
-      }
-    }
-    
-    setMerchantNames(merchantNamesMap);
-    console.log("Merchant names fetched!");
-  }
-
-  async function getAndProcessAccounts() {
-    try {
-      console.log("Getting accounts...");
-      const accounts: accountType[] = await nessie.getAccounts();
-      console.log("API Response:", accounts);
-
-      const firstAccount = accounts[0];
-      setUserAccount(firstAccount); // Save the account to state
-
-      // Now fetch purchases for that account
-      await doSomethingWithAccount(firstAccount);
-      
-      console.log("All data processed!");
-
-    } catch (error) {
-      console.error("Error processing accounts:", error);
-    }
-  }
-
-  // Call the function
-  getAndProcessAccounts();
-
-}, []);
-
-// Separate useEffect to generate wellness score when purchase data is available
-useEffect(() => {
-  const generateWellnessScore = async () => {
-    if (purchase_history.length > 0) {
-      setIsLoadingWellnessScore(true);
-      try {
-        console.log('Generating wellness score with Gemini API...');
-        
-        // Transform purchase data to Transaction format
-        const transactions = transformPurchasesToTransactions(purchase_history);
-        console.log(`Transformed ${transactions.length} purchases to transactions`);
-        
-        // Call Gemini API to generate finance score
-        const financeScore: FinanceScore = await gemini.generateFinanceScore(transactions);
-        console.log('Finance score generated:', financeScore);
-        
-        // Convert FinanceScore to WellnessScoreData format
-        const wellnessScoreData: WellnessScoreData = {
-          overall: financeScore.overall,
-          category: getCategoryFromScore(financeScore.overall)
-        };
-        
-        setWellnessScore(wellnessScoreData);
-        console.log('Wellness score set:', wellnessScoreData);
-        
-      } catch (error) {
-        console.error('=== WELLNESS SCORE ERROR ===');
-        console.error('Error generating wellness score:', error);
-        console.error('Error type:', typeof error);
-        console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-        console.error('=== END ERROR LOG ===');
-        
-        // Fallback to mock data if API fails
-        const fallbackScore: WellnessScoreData = {
-          overall: 72,
-          category: 'Good'
-        };
-        setWellnessScore(fallbackScore);
-      } finally {
-        setIsLoadingWellnessScore(false);
-      }
-    }
-  };
-
-  generateWellnessScore();
-}, [purchase_history]);
-
-// Separate useEffect to generate analysis result when purchase data is available
-useEffect(() => {
-  const generateAnalysisResult = async () => {
-    if (purchase_history.length > 0) {
-      setIsLoadingAnalysis(true);
-      try {
-        console.log('Generating spending analysis with Gemini API...');
-        
-        // Transform purchase data to Transaction format
-        const transactions = transformPurchasesToTransactions(purchase_history);
-        console.log(`Transformed ${transactions.length} purchases to transactions for analysis`);
-        
-        // Call Gemini API to analyze spending
-        const analysis: AnalysisResult = await gemini.analyzeSpending(transactions);
-        
-        // Only log if we successfully got the analysis result
-        if (analysis) {
-          // Comprehensive logging of AnalysisResult
-          console.log('=== SPENDING ANALYSIS RESULT ===');
-          console.log('Full AnalysisResult object:', JSON.stringify(analysis, null, 2));
-          
-          console.log('\n--- SUMMARY ---');
-          console.log('Total Spent:', analysis.summary.totalSpent);
-          console.log('Average Daily:', analysis.summary.averageDaily);
-          console.log('Span Days:', analysis.summary.spanDays);
-          
-          console.log('\n--- CATEGORIES ---');
-          analysis.categories.forEach((category, index) => {
-            console.log(`Category ${index + 1}:`, {
-              name: category.category,
-              trend: category.trend,
-              change: category.change,
-              shortInsight: category.shortInsight,
-              detailedAnalysis: category.detailedAnalysis,
-              wellnessAdvice: category.wellnessAdvice
-            });
-          });
-          
-          console.log('\n--- ANOMALIES ---');
-          analysis.anomalies.forEach((anomaly, index) => {
-            console.log(`Anomaly ${index + 1}:`, {
-              id: anomaly.id,
-              date: anomaly.date,
-              category: anomaly.category,
-              amount: anomaly.amount,
-              shortInsight: anomaly.shortInsight,
-              detailedReason: anomaly.detailedReason
-            });
-          });
-          
-          console.log('\n--- RECOMMENDATIONS ---');
-          analysis.recommendations.forEach((rec, index) => {
-            console.log(`Recommendation ${index + 1}:`, {
-              shortInsight: rec.shortInsight,
-              detailedAdvice: rec.detailedAdvice,
-              linkedInsights: rec.linkedInsights,
-              linkedAnomalies: rec.linkedAnomalies,
-              category: rec.category
-            });
-          });
-          
-          console.log('\n--- WELLNESS TIPS ---');
-          analysis.wellnessTips.forEach((tip, index) => {
-            console.log(`Wellness Tip ${index + 1}:`, {
-              trigger: tip.trigger,
-              shortTip: tip.shortTip,
-              detailedTip: tip.detailedTip
-            });
-          });
-          
-          console.log('=== END ANALYSIS RESULT ===\n');
-        }
-        
-        setAnalysisResult(analysis);
-        
-      } catch (error) {
-        console.error('=== SPENDING ANALYSIS ERROR ===');
-        console.error('Error generating spending analysis:', error);
-        console.error('Error type:', typeof error);
-        console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-        console.error('=== END ERROR LOG ===');
-        
-        // Set to null if API fails - no fallback needed as this is optional data
-        setAnalysisResult(null);
-      } finally {
-        setIsLoadingAnalysis(false);
-      }
-    }
-  };
-
-  generateAnalysisResult();
-}, [purchase_history]);
+}, [financeScore]);
 
   
   
@@ -303,13 +105,55 @@ useEffect(() => {
 
 
   
-  // Purchase data array
-  
-  
+  // Show loading state if data is not ready
+  if (!isDataReady.financial && loadingStates.financial) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#2d1ba1" />
+        <Text className="text-gray-600 mt-4">Loading financial data...</Text>
+      </View>
+    );
+  }
+
+  // Show error state if there's an error and no data
+  if (errorStates.financial && !financialData) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center px-6">
+        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <Text className="text-red-600 text-lg font-semibold mt-4 text-center">
+          {errorStates.financial}
+        </Text>
+        <TouchableOpacity 
+          className="mt-4 bg-capitalblue rounded-lg px-6 py-3"
+          onPress={() => navigation.goBack()}
+        >
+          <Text className="text-white font-semibold">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Show message if no data is available
+  if (!financialData) {
+    return (
+      <View className="flex-1 bg-gray-50 justify-center items-center px-6">
+        <Ionicons name="information-circle" size={48} color="#6b7280" />
+        <Text className="text-gray-600 text-lg font-semibold mt-4 text-center">
+          No financial data available
+        </Text>
+        <TouchableOpacity 
+          className="mt-4 bg-capitalblue rounded-lg px-6 py-3"
+          onPress={() => navigation.goBack()}
+        >
+          <Text className="text-white font-semibold">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView className="flex-1 bg-gray-50">
       {/* Header with Capital Blue */}
-
       <View className="bg-capitalblue px-6 py-8 pt-20">
         <View className="flex-row items-center mb-4">
           <TouchableOpacity 
@@ -328,31 +172,35 @@ useEffect(() => {
       </View>
 
       {/* Financial Wellness Score */}
-      {(wellnessScore || isLoadingWellnessScore) && (
+      {(wellnessScore || loadingStates.geminiFinance) && (
         <View className="mx-4 mt-6">
-          <WellnessScoreCard score={wellnessScore} isLoading={isLoadingWellnessScore} />
+          <WellnessScoreCard 
+            score={wellnessScore} 
+            isLoading={loadingStates.geminiFinance} 
+          />
         </View>
       )}
 
-      <View className='w-full px-4'>
-        <LineChart 
-          data={purchase_history.map((item, index) => ({
-            value: item.amount,
-            label: formatDateForChart(item.purchase_date),
-          }))}
-          width={300}
-          height={200}
-          spacing={60}
-          initialSpacing={20}
-          endSpacing={20}
-          color={'#B22A2C'}
-          thickness={4}
-          curved = {true}
-          curveType={CurveType.QUADRATIC}
-          /* curvature={0.05} */
-          /* startFillColor="green" */
-        />
-      </View>
+      {/* Chart */}
+      {financialData.purchases.length > 0 && (
+        <View className='w-full px-4'>
+          <LineChart 
+            data={financialData.purchases.map((item, index) => ({
+              value: item.amount,
+              label: formatDateForChart(item.purchase_date),
+            }))}
+            width={300}
+            height={200}
+            spacing={60}
+            initialSpacing={20}
+            endSpacing={20}
+            color={'#B22A2C'}
+            thickness={4}
+            curved={true}
+            curveType={CurveType.QUADRATIC}
+          />
+        </View>
+      )}
 
       {/* Purchase List */}
       <View className="mt-6">
@@ -362,8 +210,8 @@ useEffect(() => {
           </Text>
           <TouchableOpacity 
             onPress={() => navigation.push('AllPurchases', {
-              purchaseHistory: JSON.stringify(purchase_history),
-              merchantNames: JSON.stringify(merchant_names)
+              purchaseHistory: JSON.stringify(financialData.purchases),
+              merchantNames: JSON.stringify(financialData.merchantNames)
             })}
             className="bg-capitalblue px-3 py-1 rounded-lg"
           >
@@ -371,13 +219,13 @@ useEffect(() => {
           </TouchableOpacity>
         </View>
         
-        {purchase_history.slice().reverse().slice(0, 5).map((purchase, index) => (
+        {financialData.purchases.slice().reverse().slice(0, 5).map((purchase, index) => (
           <Purchase 
             key={index}
             amount={purchase.amount}
             date={purchase.purchase_date}
             description={purchase.description}
-            merchant={merchant_names[purchase.merchant_id] || purchase.merchant_id}
+            merchant={financialData.merchantNames[purchase.merchant_id] || purchase.merchant_id}
           />
         ))}
       </View>
@@ -388,14 +236,30 @@ useEffect(() => {
           Smart Recommendations
         </Text>
         
-        {analysisResult?.recommendations.map((recommendation, index) => (
-          <RecommendationView
-            key={index}
-            recommendation={recommendation}
-            navigation={navigation}
-          />
-        ))}
+        {loadingStates.geminiFinance ? (
+          <View className="mx-4 bg-white rounded-lg p-4 mb-3">
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator size="small" color="#1E40AF" />
+              <Text className="text-gray-600 ml-2">Generating recommendations...</Text>
+            </View>
+          </View>
+        ) : spendingAnalysis?.recommendations ? (
+          spendingAnalysis.recommendations.map((recommendation, index) => (
+            <RecommendationView
+              key={index}
+              recommendation={recommendation}
+              navigation={navigation}
+            />
+          ))
+        ) : (
+          <View className="mx-4 bg-white rounded-lg p-4 mb-3">
+            <Text className="text-gray-500 text-center">
+              No recommendations available yet
+            </Text>
+          </View>
+        )}
       </View>
+      <View className='h-4 w-10'></View>
     </ScrollView>
   );
 }

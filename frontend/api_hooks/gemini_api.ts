@@ -8,7 +8,7 @@ export class GeminiIntegration {
     private flash_model: GenerativeModel;
     private pro_model: GenerativeModel;
 
-    constructor(apiKey: string = "AIzaSyAvanlVJGoRssaEvt9pisH_JPdbX43lPs8") {
+    constructor(apiKey: string = "AIzaSyCrKYxCDad8I-1fuw32xfLx7sYBIFVrkdU") {
         this.apiKey = apiKey;
         const genAI = new GoogleGenerativeAI(apiKey!);
         this.flash_model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-thinking-exp' });
