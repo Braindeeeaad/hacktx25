@@ -6,6 +6,7 @@ import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+
 export default function WellbeingPage() {
   const router = useRouter();
   function getCurrentScore() {
@@ -21,6 +22,7 @@ export default function WellbeingPage() {
     { value: 90, label: '10/17' },
     { value: 70, label: '10/18' },
   ]; // REPLACE WITH API CALL
+  const USER_ID = "f"; // REPLACE WITH API CALL
   const currentScore = getCurrentScore();
   const colors = ['#c20000ff', '#eb9e2bff', '#f8d40aff', '#2c9104ff'];
   const currentColor = colors[Math.floor(currentScore / 25 - 1)];
@@ -75,7 +77,7 @@ export default function WellbeingPage() {
             >
               <View className="flex-1 bg-black/50 justify-center items-center">
                 <View className="bg-white p-6 rounded-xl w-80">
-                  <EmotionLogging closeTab={() => setModalVisible(false)} />
+                  <EmotionLogging closeTab={() => setModalVisible(false)} userId={USER_ID}/>
                 </View>
               </View>
             </Modal>

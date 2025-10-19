@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
-
+import { db } from '../firebaseConfig';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type UserState = {
   "Well-being": number;
@@ -11,7 +12,9 @@ type UserState = {
   Stress: number;
 };
 type Operation = () => void;
-type Props = {closeTab : Operation};
+type Props = {closeTab : Operation;
+              userId: string
+};
 export default function EmotionLogging(props: Props) {
   const categories: { key: keyof UserState; title: string; options: string[] }[] = [
     { key: "Well-being", title: "Your overall well-being", options: ["Really sad", "Sad", "OK", "Good", "Amazing!"] },
@@ -26,10 +29,30 @@ export default function EmotionLogging(props: Props) {
   function setCategoryValue(key: keyof UserState, value: number) {
     setUserState(prev => ({ ...prev, [key]: value }));
   }
-  function handleSubmit() {
-    console.log(userState); // REPLACE WITH API CALL
-    setUserState(initialUserState);
-  }
+  const handleSubmit = async () => {
+      if (!props.userId) {
+        Alert.alert('Error', 'User ID is required');
+        return;
+      }
+      console.log("hi");
+      try {
+        const moodData = Object.values(userState);
+        
+        const id = props.userId;
+        // Save to Firebase Firestore
+        await addDoc(collection(db, 'mood_entries'), {
+          id,
+          date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+          ...moodData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        setUserState(initialUserState);
+        } catch (error) {
+        Alert.alert('Error', 'Failed to save mood data');
+        console.error('Mood submission error:', error);
+      } 
+    };
   return (
     <View className="bg-white rounded-2xl px-6 py-6 items-center w-full max-w-md">
       <Text className="text-lg font-semibold mb-2 text-capitalblue">Log your Well-Being</Text>
@@ -54,10 +77,7 @@ export default function EmotionLogging(props: Props) {
       ))}
       <TouchableOpacity
         className="mt-2 bg-capitalblue rounded-lg px-6 py-2 shadow-sm w-full"
-        onPress={() => {
-          handleSubmit();
-          props.closeTab();
-        }}
+        onPress={handleSubmit}
       >
         <Text className="text-white text-center font-semibold text-base">Submit</Text>
       </TouchableOpacity>
