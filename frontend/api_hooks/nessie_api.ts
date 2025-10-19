@@ -1,9 +1,5 @@
-export interface Transaction {
-  date: string;
-  category: string;
-  amount: number;
-  // add where its from not use in gemini correlation analysis but to display in past transcations
-}
+import { Transaction } from "./api_types";
+
 
 export class NessieAPIIntegration {
   private apiKey: string;
@@ -232,23 +228,4 @@ export class NessieAPIIntegration {
   } */
 }
 
-export interface accountType {
-    _id : string;
-    balance : number;
-    customer_id : string;
-    nickname : string;
-    rewards : number;
-    type : string;
-}
 
-export interface purchaseType {
-    _id: string;
-    type: string;
-    merchant_id: string;
-    payer_id: string;
-    purchase_date: string;
-    amount: number;
-    status: string;
-    medium: string;
-    description: string;
-}

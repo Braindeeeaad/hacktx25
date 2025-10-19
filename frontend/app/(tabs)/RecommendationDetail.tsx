@@ -7,7 +7,6 @@ interface RecommendationDetailProps {
   title: string;
   overview: string;
   insights: string[];
-  recommendations: string[];
 }
 
 export default function RecommendationDetail() {
@@ -20,7 +19,6 @@ export default function RecommendationDetail() {
     title: (params?.title as string) || "Financial Recommendation",
     overview: (params?.overview as string) || "Based on your financial data, here are some personalized recommendations to help improve your financial health.",
     insights: params?.insights ? JSON.parse(params.insights as string) : [],
-    recommendations: params?.recommendations ? JSON.parse(params.recommendations as string) : []
   };
 
   return (
@@ -83,28 +81,6 @@ export default function RecommendationDetail() {
       </View>
 
       {/* Recommendations Section */}
-      <View className="mt-6 mx-4 mb-8">
-        <View className="bg-white rounded-lg shadow-sm p-6">
-          <View className="flex-row items-center mb-4">
-            <Ionicons name="bulb-outline" size={24} color="#B22A2C" />
-            <Text className="text-capitalblue text-lg font-semibold ml-2">
-              Recommendations
-            </Text>
-          </View>
-          {recommendationData.recommendations.map((recommendation, index) => (
-            <View key={index} className="mb-4 last:mb-0">
-              <View className="flex-row items-start">
-                <View className="bg-capitalblue rounded-full w-6 h-6 items-center justify-center mr-3 mt-1">
-                  <Text className="text-white text-xs font-bold">{index + 1}</Text>
-                </View>
-                <Text className="text-gray-800 text-base leading-6 flex-1">
-                  {recommendation}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
     </ScrollView>
   );
 }

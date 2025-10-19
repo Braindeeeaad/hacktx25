@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { purchaseType } from '@/api_hooks/nessie_api';
+import { purchaseType } from '@/api_hooks/api_types';
 
 export default function AllPurchases() {
   const navigation = useNavigation<StackNavigationProp<any>>();

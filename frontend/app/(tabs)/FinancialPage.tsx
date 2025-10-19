@@ -3,8 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BarChart, CurveType, LineChart, PieChart, PopulationPyramid, RadarChart, lineDataItem } from "react-native-gifted-charts";
-import { NessieAPIIntegration, accountType, purchaseType } from '@/api_hooks/nessie_api';
+import { NessieAPIIntegration} from '@/api_hooks/nessie_api';
 import { useEffect, useState } from 'react';
+import { GeminiIntegration } from '@/api_hooks/gemini_api';
+import { Transaction, ProcessedData, Anomaly, FinanceScore, accountType, purchaseType, AnalysisResult, Recommendation } from "@/api_hooks/api_types";
 
 interface RecommendationData {
   title: string;
@@ -13,15 +15,14 @@ interface RecommendationData {
   recommendations: string[];
 }
 
-
-
+interface WellnessScoreData {
+  overall: number;
+  category: string;
+}
 
 export default function FinancialPage() {
-
-
-
   const navigation = useNavigation<StackNavigationProp<any>>();
-
+  const gemini = new GeminiIntegration()
   const nessie = new NessieAPIIntegration(
     '2535e8ec7de75e2bb33a7e0bab0cc897',        // Your actual API key
     '68f4080c9683f20dd519f005',           // Your actual customer ID
@@ -31,53 +32,58 @@ export default function FinancialPage() {
   const [purchase_history, setPurchaseHistory] = useState<purchaseType[]>([]);
   const [merchant_names, setMerchantNames] = useState<{[key: string]: string}>({});
 // ... (you probably need a user_account state too)
-const [user_account, setUserAccount] = useState<accountType | null>(null);
+  const [user_account, setUserAccount] = useState<accountType | null>(null);
+   const [wellnessScore, setWellnessScore] = useState<WellnessScoreData | null>(null);
+   const [isLoadingWellnessScore, setIsLoadingWellnessScore] = useState(false);
+   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
+
+// Function to transform purchase data to Transaction format
+const transformPurchasesToTransactions = (purchases: purchaseType[]): Transaction[] => {
+  return purchases.map((purchase) => ({
+    date: purchase.purchase_date,
+    category: purchase.description.slice(0, purchase.description.indexOf(" ")),
+    amount: Math.abs(purchase.amount) // Make positive for spending analysis
+  }));
+};
+
+// Function to map purchase descriptions to categories (similar to nessie_api.ts)
+const mapPurchaseCategory = (description: string): string => {
+  // Handle edge cases
+  if (!description || typeof description !== 'string') {
+    return 'Other';
+  }
+  
+  const desc = description.toLowerCase().trim();
+  
+  if (desc.includes('takeout') || desc.includes('restaurant') || desc.includes('food')) {
+    return 'Food';
+  } else if (desc.includes('grocery') || desc.includes('grocery')) {
+    return 'Food';
+  } else if (desc.includes('gas') || desc.includes('fuel')) {
+    return 'Transport';
+  } else if (desc.includes('shopping') || desc.includes('store')) {
+    return 'Shopping';
+  } else if (desc.includes('coffee') || desc.includes('cafe')) {
+    return 'Food';
+  } else if (desc.includes('entertainment') || desc.includes('movie') || desc.includes('game')) {
+    return 'Entertainment';
+  } else {
+    return 'Other';
+  }
+};
+
+// Function to determine category from score
+const getCategoryFromScore = (score: number): string => {
+  if (score >= 80) return 'Excellent';
+  else if (score >= 65) return 'Good';
+  else if (score >= 50) return 'Fair';
+  else if (score >= 35) return 'Poor';
+  else return 'Critical';
+};
 
 // Recommendation data
-const recommendations: RecommendationData[] = [
-  {
-    title: "Emergency Fund Optimization",
-    overview: "Based on your spending patterns and financial goals, we've identified several opportunities to strengthen your financial foundation and improve your long-term financial health.",
-    insights: [
-      "Your current emergency fund covers only 2.3 months of expenses, below the recommended 6-month minimum",
-      "You're spending 23% more on discretionary items compared to last month",
-      "Your savings rate has decreased by 8% over the past quarter"
-    ],
-    recommendations: [
-      "Increase emergency fund contributions by $200/month to reach 6-month coverage within 18 months",
-      "Set up automatic transfers to a high-yield savings account earning 4.5% APY",
-      "Review and cancel 2-3 unused subscriptions to free up $45/month for emergency fund"
-    ]
-  },
-  {
-    title: "High-Yield Savings Account",
-    overview: "Your current savings account is earning minimal interest. By switching to a high-yield savings account, you could significantly increase your returns on your emergency fund and other savings.",
-    insights: [
-      "Your current savings account earns only 0.01% APY",
-      "High-yield savings accounts are currently offering 4.5-5.0% APY",
-      "You could earn an additional $180-200 annually on a $4,000 emergency fund"
-    ],
-    recommendations: [
-      "Research and compare high-yield savings accounts from online banks",
-      "Consider accounts with no minimum balance requirements",
-      "Set up automatic transfers to maximize your interest earnings"
-    ]
-  },
-  {
-    title: "Subscription Service Review",
-    overview: "An analysis of your spending patterns shows potential savings opportunities in your subscription services. Many users have unused or underutilized subscriptions that can be optimized.",
-    insights: [
-      "Average household has 12+ subscription services costing $200+ monthly",
-      "Many subscriptions go unused after the first few months",
-      "Bundling similar services can reduce costs by 20-30%"
-    ],
-    recommendations: [
-      "Audit all your current subscriptions and their usage",
-      "Cancel services you haven't used in the past 3 months",
-      "Consider family plans or annual billing for services you use regularly"
-    ]
-  }
-];
+
 
 // This useEffect hook will run ONLY ONCE when the component mounts
 useEffect(() => {
@@ -140,6 +146,148 @@ useEffect(() => {
 
 }, []);
 
+// Separate useEffect to generate wellness score when purchase data is available
+useEffect(() => {
+  const generateWellnessScore = async () => {
+    if (purchase_history.length > 0) {
+      setIsLoadingWellnessScore(true);
+      try {
+        console.log('Generating wellness score with Gemini API...');
+        
+        // Transform purchase data to Transaction format
+        const transactions = transformPurchasesToTransactions(purchase_history);
+        console.log(`Transformed ${transactions.length} purchases to transactions`);
+        
+        // Call Gemini API to generate finance score
+        const financeScore: FinanceScore = await gemini.generateFinanceScore(transactions);
+        console.log('Finance score generated:', financeScore);
+        
+        // Convert FinanceScore to WellnessScoreData format
+        const wellnessScoreData: WellnessScoreData = {
+          overall: financeScore.overall,
+          category: getCategoryFromScore(financeScore.overall)
+        };
+        
+        setWellnessScore(wellnessScoreData);
+        console.log('Wellness score set:', wellnessScoreData);
+        
+      } catch (error) {
+        console.error('=== WELLNESS SCORE ERROR ===');
+        console.error('Error generating wellness score:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        console.error('=== END ERROR LOG ===');
+        
+        // Fallback to mock data if API fails
+        const fallbackScore: WellnessScoreData = {
+          overall: 72,
+          category: 'Good'
+        };
+        setWellnessScore(fallbackScore);
+      } finally {
+        setIsLoadingWellnessScore(false);
+      }
+    }
+  };
+
+  generateWellnessScore();
+}, [purchase_history]);
+
+// Separate useEffect to generate analysis result when purchase data is available
+useEffect(() => {
+  const generateAnalysisResult = async () => {
+    if (purchase_history.length > 0) {
+      setIsLoadingAnalysis(true);
+      try {
+        console.log('Generating spending analysis with Gemini API...');
+        
+        // Transform purchase data to Transaction format
+        const transactions = transformPurchasesToTransactions(purchase_history);
+        console.log(`Transformed ${transactions.length} purchases to transactions for analysis`);
+        
+        // Call Gemini API to analyze spending
+        const analysis: AnalysisResult = await gemini.analyzeSpending(transactions);
+        
+        // Only log if we successfully got the analysis result
+        if (analysis) {
+          // Comprehensive logging of AnalysisResult
+          console.log('=== SPENDING ANALYSIS RESULT ===');
+          console.log('Full AnalysisResult object:', JSON.stringify(analysis, null, 2));
+          
+          console.log('\n--- SUMMARY ---');
+          console.log('Total Spent:', analysis.summary.totalSpent);
+          console.log('Average Daily:', analysis.summary.averageDaily);
+          console.log('Span Days:', analysis.summary.spanDays);
+          
+          console.log('\n--- CATEGORIES ---');
+          analysis.categories.forEach((category, index) => {
+            console.log(`Category ${index + 1}:`, {
+              name: category.category,
+              trend: category.trend,
+              change: category.change,
+              shortInsight: category.shortInsight,
+              detailedAnalysis: category.detailedAnalysis,
+              wellnessAdvice: category.wellnessAdvice
+            });
+          });
+          
+          console.log('\n--- ANOMALIES ---');
+          analysis.anomalies.forEach((anomaly, index) => {
+            console.log(`Anomaly ${index + 1}:`, {
+              id: anomaly.id,
+              date: anomaly.date,
+              category: anomaly.category,
+              amount: anomaly.amount,
+              shortInsight: anomaly.shortInsight,
+              detailedReason: anomaly.detailedReason
+            });
+          });
+          
+          console.log('\n--- RECOMMENDATIONS ---');
+          analysis.recommendations.forEach((rec, index) => {
+            console.log(`Recommendation ${index + 1}:`, {
+              shortInsight: rec.shortInsight,
+              detailedAdvice: rec.detailedAdvice,
+              linkedInsights: rec.linkedInsights,
+              linkedAnomalies: rec.linkedAnomalies,
+              category: rec.category
+            });
+          });
+          
+          console.log('\n--- WELLNESS TIPS ---');
+          analysis.wellnessTips.forEach((tip, index) => {
+            console.log(`Wellness Tip ${index + 1}:`, {
+              trigger: tip.trigger,
+              shortTip: tip.shortTip,
+              detailedTip: tip.detailedTip
+            });
+          });
+          
+          console.log('=== END ANALYSIS RESULT ===\n');
+        }
+        
+        setAnalysisResult(analysis);
+        
+      } catch (error) {
+        console.error('=== SPENDING ANALYSIS ERROR ===');
+        console.error('Error generating spending analysis:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        console.error('=== END ERROR LOG ===');
+        
+        // Set to null if API fails - no fallback needed as this is optional data
+        setAnalysisResult(null);
+      } finally {
+        setIsLoadingAnalysis(false);
+      }
+    }
+  };
+
+  generateAnalysisResult();
+}, [purchase_history]);
+
   
   
   // Function to format date to show only month and date
@@ -176,6 +324,13 @@ useEffect(() => {
           Recent transactions and purchases
         </Text>
       </View>
+
+      {/* Financial Wellness Score */}
+      {(wellnessScore || isLoadingWellnessScore) && (
+        <View className="mx-4 mt-6">
+          <WellnessScoreCard score={wellnessScore} isLoading={isLoadingWellnessScore} />
+        </View>
+      )}
 
       <View className='w-full px-4'>
         <LineChart 
@@ -219,7 +374,7 @@ useEffect(() => {
             key={index}
             amount={purchase.amount}
             date={purchase.purchase_date}
-            type={purchase.description}
+            type={purchase.description.slice(0, purchase.description.indexOf(" "))}
             merchant={merchant_names[purchase.merchant_id] || purchase.merchant_id}
           />
         ))}
@@ -231,8 +386,8 @@ useEffect(() => {
           Smart Recommendations
         </Text>
         
-        {recommendations.map((recommendation, index) => (
-          <Recommendation 
+        {analysisResult?.recommendations.map((recommendation, index) => (
+          <RecommendationView
             key={index}
             recommendation={recommendation}
             navigation={navigation}
@@ -269,17 +424,16 @@ function Purchase({ amount, date, type, merchant }: purchaseViewProps) {
 
 
 interface recommendationViewProps {
-    recommendation: RecommendationData;
+    recommendation: Recommendation;
     navigation : any;
 }
 
-function Recommendation({ recommendation, navigation }: recommendationViewProps) {
+function RecommendationView({ recommendation, navigation }: recommendationViewProps) {
   const handlePress = () => {
     navigation.push('RecommendationDetail', {
-      title: recommendation.title,
-      overview: recommendation.overview,
-      insights: JSON.stringify(recommendation.insights),
-      recommendations: JSON.stringify(recommendation.recommendations)
+      title: recommendation.shortInsight,
+      overview: recommendation.detailedAdvice,
+      insights: JSON.stringify(recommendation.linkedInsights),
     });
   };
 
@@ -290,7 +444,7 @@ function Recommendation({ recommendation, navigation }: recommendationViewProps)
     >
       <View className="flex-row justify-between items-center">
         <View className="flex-1">
-          <Text className="text-lg font-semibold text-gray-800">{recommendation.title}</Text>
+          <Text className="text-lg font-semibold text-gray-800">{recommendation.shortInsight}</Text>
         </View>
         <View className="items-end">
           <Ionicons name="bulb-outline" size={24} color="#B22A2C" />
@@ -299,4 +453,81 @@ function Recommendation({ recommendation, navigation }: recommendationViewProps)
     </TouchableOpacity>
   );
 }
+
+interface WellnessScoreCardProps {
+  score: WellnessScoreData | null;
+  isLoading: boolean;
+}
+
+function WellnessScoreCard({ score, isLoading }: WellnessScoreCardProps) {
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return '#10B981'; // Green
+    if (score >= 65) return '#3B82F6'; // Blue
+    if (score >= 50) return '#F59E0B'; // Yellow
+    if (score >= 35) return '#EF4444'; // Red
+    return '#DC2626'; // Dark Red
+  };
+
+  const getScoreIcon = (score: number) => {
+    if (score >= 80) return 'trending-up';
+    if (score >= 65) return 'checkmark-circle';
+    if (score >= 50) return 'warning';
+    if (score >= 35) return 'alert-circle';
+    return 'close-circle';
+  };
+
+  if (isLoading) {
+    return (
+      <View className="bg-white rounded-xl shadow-sm p-6 mb-4">
+        <View className="flex-row items-center justify-between mb-4">
+          <View className="flex-row items-center">
+            <Ionicons name="analytics-outline" size={24} color="#1E40AF" />
+            <Text className="text-xl font-bold text-gray-800 ml-2">Financial Wellness Score</Text>
+          </View>
+          <View className="items-center">
+            <View className="w-16 h-16 rounded-full items-center justify-center bg-gray-100">
+              <Ionicons name="hourglass-outline" size={24} color="#6B7280" />
+            </View>
+            <Text className="text-sm font-medium mt-1 text-gray-500">
+              Analyzing...
+            </Text>
+          </View>
+        </View>
+        <View className="flex-row items-center justify-center py-4">
+          <Ionicons name="refresh" size={20} color="#6B7280" />
+          <Text className="text-gray-600 ml-2">Generating your financial wellness score</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!score) {
+    return null;
+  }
+
+  return (
+    <View className="bg-white rounded-xl shadow-sm p-6 mb-4">
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center">
+          <Ionicons name="analytics-outline" size={24} color="#1E40AF" />
+          <Text className="text-xl font-bold text-gray-800 ml-2">Financial Wellness Score</Text>
+        </View>
+        <View className="items-center">
+          <View 
+            className="w-16 h-16 rounded-full items-center justify-center"
+            style={{ backgroundColor: getScoreColor(score.overall) + '20' }}
+          >
+            <Text className="text-2xl font-bold" style={{ color: getScoreColor(score.overall) }}>
+              {score.overall}
+            </Text>
+          </View>
+          <Text className="text-sm font-medium mt-1" style={{ color: getScoreColor(score.overall) }}>
+            {score.category}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 
