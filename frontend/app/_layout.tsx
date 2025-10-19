@@ -4,6 +4,7 @@ import { useColorScheme, View , ActivityIndicator} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { AuthProvider } from '../firebase_context';
 import { auth } from '../firebaseConfig';
 export default function RootLayout() {
  const colorScheme = useColorScheme();
@@ -51,10 +52,13 @@ export default function RootLayout() {
   // 3. Render the Navigation Stack
   // If no redirection occurred, we render the stack.
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" /> // Protected routes
-      <Stack.Screen name="Login" /> // Public route
-    </Stack>
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" /> // Protected routes
+        <Stack.Screen name="Login" /> // Public route
+      </Stack>
+    </AuthProvider>
+    
   );
 }
 
