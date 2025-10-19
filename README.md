@@ -16,7 +16,7 @@ Through a clean mobile interface and a connected backend, users can log emotions
 
 ## Video Demo
 
-*Coming soon*
+[Watch the video on YouTube](https://m.youtube.com/shorts/NfY41eh2oR8)
 
 ---
 
