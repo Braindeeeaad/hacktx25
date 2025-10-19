@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEmail } from '../../contexts/emailContext';
 
 // API service functions
-const API_BASE_URL = 'http://10.148.16.170:8000/api/emotional-data';
+const API_BASE_URL = 'https://unribboned-lavada-phytogenic.ngrok-free.dev/api/emotional-data';
 
 interface WellbeingData {
   id: string;
@@ -133,6 +133,49 @@ const formatChartData = (data: WellbeingData[]): { value: number; label: string 
   }));
 };
 
+// New function to post wellbeing data to backend
+interface WellbeingDataRequest {
+  userId: string;
+  date: string;
+  overall_wellbeing: number;
+  sleep_quality: number;
+  physical_activity: number;
+  time_with_family_friends: number;
+  diet_quality: number;
+  stress_levels: number;
+}
+
+const postWellbeingData = async (data: WellbeingDataRequest): Promise<boolean> => {
+  try {
+    console.log('📤 Posting wellbeing data:', data);
+    console.log('🌐 API URL:', `${API_BASE_URL}/user/${data.userId}`);
+    
+    const response = await fetch(`${API_BASE_URL}/user/${data.userId}`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+    
+    console.log('📡 Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ API Success:', result);
+    return true;
+  } catch (error) {
+    console.error('❌ Error posting wellbeing data:', error);
+    throw error;
+  }
+};
+
 export default function WellbeingPage() {
   const { email } = useEmail();
   const router = useRouter();
@@ -180,12 +223,30 @@ export default function WellbeingPage() {
   const currentColor = colors[Math.floor(Math.max(0, currentScore / 25 - 1))];
 
   // Handle quiz completion
-  const handleQuizComplete = async () => {
-    setModalVisible(false);
-    setQuizTaken(true);
-    // Refresh data after quiz completion
-    if (email) {
+  const handleQuizComplete = async (wellbeingData: WellbeingDataRequest) => {
+    if (!email) {
+      Alert.alert('Error', 'Please log in to save your wellbeing data');
+      return;
+    }
+
+    try {
+      const dataToSubmit = {
+        ...wellbeingData,
+        userId: email
+      };
+      
+      await postWellbeingData(dataToSubmit);
+      
+      setModalVisible(false);
+      setQuizTaken(true);
+      Alert.alert('Success', 'Your wellbeing data has been saved successfully!');
+      
+      // Refresh data after quiz completion
       fetchUserWellbeingData(email).then(setWellbeingData);
+    
+    } catch (error) {
+      console.error('Error submitting wellbeing data:', error);
+      Alert.alert('Error', 'Failed to save your wellbeing data. Please try again.');
     }
   };
 
@@ -268,7 +329,10 @@ export default function WellbeingPage() {
             >
               <View className="flex-1 bg-black/50 justify-center items-center">
                 <View className="bg-white p-6 rounded-xl w-80">
-                  <EmotionLogging closeTab={handleQuizComplete} />
+                  <EmotionLogging 
+                    closeTab={() => setModalVisible(false)}
+                    onDataSubmit={handleQuizComplete}
+                  />
                 </View>
               </View>
             </Modal>

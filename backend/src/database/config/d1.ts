@@ -1,5 +1,9 @@
 import { DatabaseConfig } from '../types';
+import dotenv from 'dotenv';
+import path from 'path';
 
+// Load environment variables from the correct path
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 // Lazy D1 configuration to ensure environment variables are loaded
 export const getD1Config = (): DatabaseConfig => ({
   databaseId: process.env.CLOUDFLARE_D1_DATABASE_ID || '',

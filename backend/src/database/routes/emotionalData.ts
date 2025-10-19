@@ -15,6 +15,9 @@ router.post('/init', (req, res, next) => getController().initializeDatabase(req,
 // Create new wellbeing data entry
 router.post('/', validateWellbeingData, (req, res, next) => getController().createWellbeingData(req, res, next));
 
+// Create wellbeing data by user ID
+router.post('/user/:userId', validateWellbeingData, (req, res, next) => getController().createWellbeingDataByUserId(req, res, next));
+
 // Create multiple wellbeing data entries (batch)
 router.post('/batch', validateWellbeingDataBatch, (req, res, next) => getController().createWellbeingDataBatch(req, res, next));
 

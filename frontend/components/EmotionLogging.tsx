@@ -11,7 +11,19 @@ type UserState = {
   Stress: number;
 };
 type Operation = () => void;
-type Props = {closeTab : Operation;
+type WellbeingDataRequest = {
+  userId: string;
+  date: string;
+  overall_wellbeing: number;
+  sleep_quality: number;
+  physical_activity: number;
+  time_with_family_friends: number;
+  diet_quality: number;
+  stress_levels: number;
+};
+type Props = {
+  closeTab: Operation;
+  onDataSubmit?: (data: WellbeingDataRequest) => void;
 };
 export default function EmotionLogging(props: Props) {
   const { email } = useEmail();
@@ -34,54 +46,31 @@ export default function EmotionLogging(props: Props) {
         return;
       }
       
-      try {
-        // Map userState to backend API format
-        const today = new Date();
-        const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-        
-        const wellbeingData = {
-          userId: email, // Using email as userId
-          date: dateString,
-          overall_wellbeing: userState["Well-being"],
-          sleep_quality: userState["Sleep"],
-          physical_activity: userState["Exercise"],
-          time_with_family_friends: 5, // Default value since not in current form
-          diet_quality: userState["Diet"],
-          stress_levels: userState["Stress"]
-        };
+      // Map userState to backend API format
+      const today = new Date();
+      const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      const wellbeingData: WellbeingDataRequest = {
+        userId: email, // Using email as userId
+        date: dateString,
+        overall_wellbeing: userState["Well-being"],
+        sleep_quality: userState["Sleep"],
+        physical_activity: userState["Exercise"],
+        time_with_family_friends: 5, // Default value since not in current form
+        diet_quality: userState["Diet"],
+        stress_levels: userState["Stress"]
+      };
 
-        // Call your backend API
-        console.log('Sending data to backend:', wellbeingData);
-        
-        const response = await fetch('http://10.148.16.170:8000/api/emotional-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(wellbeingData)
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Backend error response:', errorText);
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('Wellbeing data saved:', result);
-        
-        // Reset form and show success
-        setUserState(initialUserState);
-        Alert.alert('Success', 'Your wellbeing data has been saved!');
+      // Reset form
+      setUserState(initialUserState);
+      
+      // Call the parent component's submit handler
+      if (props.onDataSubmit) {
+        props.onDataSubmit(wellbeingData);
+      } else {
+        // Fallback to just closing the tab
         props.closeTab();
-        
-      } catch (error) {
-        console.error('Mood submission error:', error);
-        Alert.alert('Error', 'Failed to save mood data. Please try again.');
-      } 
+      }
     };
   return (
     <View className="bg-white rounded-2xl px-6 py-6 items-center w-full max-w-md">

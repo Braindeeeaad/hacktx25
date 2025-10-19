@@ -1,6 +1,11 @@
 import axios, { AxiosResponse } from 'axios';
 import { getD1ApiBase, getD1Headers, validateD1Config } from '../config/d1';
 import { WellbeingData, WellbeingDataRequest, WellbeingDataBatchRequest, QueryOptions } from '../types';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from the correct path
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 export class D1Service {
   private static instance: D1Service;
@@ -315,6 +320,15 @@ export class D1Service {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  }
+
+  // Create wellbeing data by user ID (for the new route)
+  async createWellbeingDataByUserId(userId: string, data: Omit<WellbeingDataRequest, 'userId'>): Promise<WellbeingData> {
+    const wellbeingData: WellbeingDataRequest = {
+      ...data,
+      userId: userId
+    };
+    return this.createWellbeingData(wellbeingData);
   }
 
   // Legacy methods for backward compatibility

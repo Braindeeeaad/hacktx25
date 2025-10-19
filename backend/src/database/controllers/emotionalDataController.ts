@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import { MockDatabaseService } from '../services/mockDatabaseService';
+import { D1Service } from '../services/d1Service';
 import { WellbeingDataRequest, WellbeingDataBatchRequest, QueryOptions } from '../types';
 import { createError } from '../middleware/errorHandler';
 
 export class EmotionalDataController {
-  private databaseService: MockDatabaseService;
+  private databaseService: D1Service;
 
   constructor() {
-    this.databaseService = MockDatabaseService.getInstance();
+    this.databaseService = D1Service.getInstance();
   }
 
   // Create new wellbeing data entry
@@ -21,6 +21,24 @@ export class EmotionalDataController {
         success: true,
         data: result,
         message: 'Wellbeing data created successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Create wellbeing data by user ID (for the new route)
+  createWellbeingDataByUserId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      const wellbeingData = req.body;
+      
+      const result = await this.databaseService.createWellbeingDataByUserId(userId, wellbeingData);
+
+      res.status(201).json({
+        success: true,
+        data: result,
+        message: 'Wellbeing data created successfully for user'
       });
     } catch (error) {
       next(error);

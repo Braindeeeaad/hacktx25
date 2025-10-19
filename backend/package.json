@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "test": "ts-node src/gemini/testRunner.ts"
+    "test": "ts-node src/gemini/testRunner.ts",
+    "seed": "ts-node scripts/seedDatabase.ts",
+    "seed:js": "node scripts/seedDatabase.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
