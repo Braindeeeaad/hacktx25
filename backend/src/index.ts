@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { emotionalDataRoutes } from './database/routes/emotionalData';
+import { analysisRoutes } from './analysis/routes';
 import { errorHandler } from './database/middleware/errorHandler';
 import { notFoundHandler } from './database/middleware/notFoundHandler';
 
@@ -34,6 +35,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/emotional-data', emotionalDataRoutes);
+app.use('/api/analysis', analysisRoutes);
 
 // Error handling middleware
 app.use(notFoundHandler);
@@ -45,6 +47,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`📈 Emotional data API: http://localhost:${PORT}/api/emotional-data`);
   console.log(`📱 Mobile access: http://10.148.16.170:${PORT}/api/emotional-data`);
+  console.log(`🧠 Financial-Wellbeing Analysis API: http://localhost:${PORT}/api/analysis`);
 });
 
 export default app;
